@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>tintin colibrí – Regalos con intención</title>
+
+<!-- Optimización de carga: adelantar la conexión a los orígenes externos que
+     se usan en cuanto arranca la página (CSV del catálogo, imagen del hero,
+     y ahora también las tipografías de Google Fonts), para que el navegador
+     resuelva DNS/TLS mientras aún se procesa el HTML. -->
+<link rel="preconnect" href="https://docs.google.com" crossorigin>
+<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://docs.google.com">
+<link rel="dns-prefetch" href="https://images.unsplash.com">
+
+<!-- Tipografías de marca: Cormorant Garamond (títulos) y Manrope (cuerpo de
+     texto). Se cargan como WOFF2 optimizado desde el CDN de Google Fonts en
+     vez de embebidas en base64: el archivo pesa muchísimo menos y el
+     navegador puede cachear estas fuentes entre visitas y entre sitios,
+     lo que acelera la primera carga real de la página. display=swap evita
+     que el texto quede invisible mientras la fuente termina de descargar. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&display=swap">
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brandBg:        '#FBF6F1',   /* crema base */
+          brandBlush:     '#F6EFE6',   /* blanco roto cálido */
+          brandPink:      '#F3D7D2',   /* rosado muy pálido */
+          brandSky:       '#C8DCE7',   /* azul pálido de acento */
+          brandInk:       '#3D2B1F',
+          brandGold:      '#B08840',
+          brandDeepGold:  '#8B6B30',
+          brandLightMuted:'#FAF3EC',
+        },
+        fontFamily: {
+          // Los nombres de clase (font-fabfelt / font-rounded) se conservan
+          // sin cambios a propósito: así este cambio de tipografía no obliga
+          // a tocar ninguna de las clases ya usadas en el HTML o en el JS.
+          fabfelt:  ['"Cormorant Garamond"', 'serif'],
+          rounded:  ['Manrope', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+<style>
+  * { box-sizing: border-box; }
+
+  /* ── Pantallas independientes (Colecciones / Nuestra historia) ── */
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  html { scroll-behavior: smooth; }
+
+  /* Scrollbar hide para nav horizontal en mobile */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Carousel dentro del modal expandido — se conserva intacto */
+  .carousel-viewport { overflow: hidden; border-radius: 14px; }
+  .carousel-track {
+    display: flex;
+    transition: transform 0.35s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+    touch-action: pan-y;
+  }
+  .carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    overflow: hidden;
+    background: #F0E4DB;
+    max-height: 350px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Manrope', sans-serif;
+    color: #8B6B30;
+    font-size: 0.85rem;
+    position: relative;
+  }
+  .carousel-slide img,
+  .carousel-slide video {
+    width: 100%; height: auto; max-height: 350px; object-fit: contain; object-position: center;
+  }
+
+  .dot {
+    transition: opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
+    opacity: 0.4;
+  }
+  .dot.active {
+    background: #B08840;
+    width: 18px;
+    border-radius: 4px;
+    opacity: 1;
+  }
+
+  /* Selector de color — círculos */
+  .color-circle {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    box-shadow: inset 0 0 0 1.5px rgba(61,43,31,0.18), 0 2px 6px rgba(61,43,31,0.12);
+    transition: border-color 0.2s, transform 0.18s, box-shadow 0.2s;
+  }
+  .color-circle.selected {
+    border-color: #8B6B30;
+    transform: scale(1.18);
+    box-shadow: inset 0 0 0 1.5px rgba(61,43,31,0.22), 0 0 0 3.5px rgba(176,136,64,0.28), 0 3px 10px rgba(61,43,31,0.18);
+  }
+  .color-circle:active { transform: scale(0.95); }
+  .color-circle.selected:active { transform: scale(1.06); }
+
+  /* Acordeón de detalles dentro de la tarjeta grande */
+  .card-details {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height 0.5s ease-in-out, opacity 0.5s ease-in-out;
+  }
+  .card-details.open { opacity: 1; }
+
+  @keyframes fadeInSlide {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .price-revealed { animation: fadeInSlide 0.35s ease forwards; }
+
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(176,136,64,0.4); }
+    50%       { box-shadow: 0 0 0 10px rgba(176,136,64,0); }
+  }
+  .wa-btn { animation: pulse-gold 2.5s infinite; }
+
+  /* ═══ SKELETON SHIMMER — tarjeta grande placeholder ═══ */
+  .skeleton-card { border-radius: 1.75rem; overflow: hidden; position: relative; background: #F0E4DB; }
+  .skeleton-shimmer {
+    position: absolute; inset: 0;
+    background: linear-gradient(115deg, rgba(250,245,240,0) 30%, rgba(255,255,255,0.65) 48%, rgba(255,255,255,0.65) 52%, rgba(250,245,240,0) 70%);
+    background-size: 250% 250%;
+    animation: shimmer-diagonal 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer-diagonal {
+    0%   { background-position: -100% -100%; }
+    100% { background-position: 100% 100%; }
+  }
+  .skeleton-fade-out { animation: skeletonFadeOut 0.4s ease forwards; }
+  @keyframes skeletonFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+  .tap-feedback { transition: transform 0.15s ease; }
+  .tap-feedback:active { transform: scale(0.95); }
+
+  .nav-pill { transition: transform 0.15s ease, background-color 0.2s ease, color 0.2s ease; }
+  .nav-pill:active { transform: scale(0.95); }
+
+  /* ═══ TARJETAS GRANDES DE PRODUCTO ═══ */
+  .product-card-lg {
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+  .product-card-lg:hover {
+    box-shadow: 0 12px 28px rgba(61,43,31,0.10);
+    transform: translateY(-2px);
+  }
+  .like-btn {
+    transition: transform 0.18s ease;
+  }
+  .like-btn:active { transform: scale(0.85); }
+  .like-btn.liked svg { fill: #C0102A; stroke: #C0102A; }
+  @keyframes heartPop {
+    0%   { transform: scale(1); }
+    35%  { transform: scale(1.35); }
+    100% { transform: scale(1); }
+  }
+  .like-btn.pop { animation: heartPop 0.35s ease; }
+
+  /* Sección "Nuestra historia" oculta hasta que se abra desde el enlace */
+  #historia-inline { display: none; }
+  #historia-inline.open { display: block; }
+</style>
+
+</head>
+<body class="bg-brandBg font-rounded text-brandInk min-h-screen pb-24">
+
+<!-- ═══════════════════════════════════════════
+     STICKY WRAPPER (header + nav) — visible en todas las pantallas
+═══════════════════════════════════════════ -->
+<div class="sticky top-0 z-40 bg-brandBg/95 backdrop-blur-sm shadow-sm border-b border-brandGold/10">
+
+  <!-- ── HEADER ── -->
+  <header class="flex items-center gap-3 px-4 pt-4 pb-2">
+    <div class="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-brandPink shadow-sm">
+      <img id="header-logo" src="assets/logo.png" alt="Logo tintin colibrí" fetchpriority="high" decoding="async" class="w-full h-full object-cover" />
+    </div>
+    <div class="flex flex-col">
+      <h1 class="font-rounded text-3xl leading-none text-brandInk tracking-wide">tintin colibrí</h1>
+      <p id="brand-submessage" class="font-fabfelt text-xl text-brandGold/80 -mt-0.5 tracking-wide leading-none">vive tu instante</p>
+    </div>
+  </header>
+
+  <!-- ── NAV — enlaces libres, sin encapsular en botones ── -->
+  <nav class="flex items-center gap-5 px-5 pb-3 overflow-x-auto no-scrollbar font-rounded text-xs tracking-wide">
+    <a href="#inicio" onclick="goToInicioTop(event)" class="nav-link flex-shrink-0 text-brandInk/80 hover:text-brandGold transition-colors duration-150 pb-0.5" data-screen="inicio">Inicio</a>
+    <a href="#" onclick="showScreen('colecciones'); return false;" class="nav-link flex-shrink-0 text-brandInk/80 hover:text-brandGold transition-colors duration-150 pb-0.5" data-screen="colecciones">Colecciones</a>
+    <a href="#" onclick="showScreen('nuestra-historia'); return false;" class="nav-link flex-shrink-0 text-brandInk/80 hover:text-brandGold transition-colors duration-150 pb-0.5" data-screen="nuestra-historia">Nuestra historia</a>
+    <a href="#" onclick="openWhatsApp(); return false;" target="_blank" class="nav-link flex-shrink-0 text-brandInk/80 hover:text-brandGold transition-colors duration-150 pb-0.5">Contacto</a>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PANTALLA — INICIO (scroll único)
+═══════════════════════════════════════════ -->
+<main id="screen-inicio" class="screen active">
+
+  <a id="inicio"></a>
+
+  <!-- ── HERO ── -->
+  <section id="hero" class="relative min-h-[520px] flex items-end overflow-hidden">
+    <img id="hero-image" src="https://images.unsplash.com/photo-1490750967868-88df5691cc5a?w=1400&q=85&auto=format&fit=crop"
+         alt="tintin colibrí" fetchpriority="high" decoding="async"
+         class="absolute inset-0 w-full h-full object-cover" style="object-position: center 30%;" />
+    <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(61,43,31,0.05) 0%, rgba(61,43,31,0.15) 40%, rgba(251,246,241,0.92) 78%, #FBF6F1 100%);"></div>
+
+    <div class="relative z-10 w-full max-w-lg mx-auto px-6 pb-8 pt-32">
+      <p id="hero-eyebrow" class="flex items-center gap-1.5 text-[11px] font-rounded text-brandDeepGold tracking-[0.25em] uppercase mb-3">
+        <span>✦</span> Colección nueva
+      </p>
+      <p id="hero-script" class="font-fabfelt text-3xl text-brandGold/90 leading-none mb-1">Tin... tin...</p>
+      <h2 id="hero-title" class="font-fabfelt text-4xl leading-[1.08] text-brandInk mb-4">El anuncio de algo extraordinario.</h2>
+      <div class="w-14 h-px bg-brandGold/50 mb-4"></div>
+      <p id="hero-body" class="font-rounded text-sm text-brandInk/70 leading-relaxed mb-6 max-w-sm">
+        Cajas que cuentan una historia, pensadas para el instante justo en que alguien se siente visto.
+      </p>
+      <a href="#" onclick="showScreen('colecciones'); return false;"
+         class="inline-flex items-center gap-2 rounded-full border border-brandGold/60 bg-brandBg/60 backdrop-blur-sm px-6 py-2.5 font-rounded text-xs font-semibold tracking-wide text-brandDeepGold hover:bg-brandGold hover:text-white transition-colors duration-200">
+        Ver colecciones
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </a>
+    </div>
+  </section>
+
+  <div class="max-w-lg mx-auto px-4 space-y-14 mt-10">
+
+  <!-- ── OCASIONES (dinámico desde CONFIG_CATEGORIA_*) ── -->
+  <section id="ocasiones">
+    <h3 class="text-center font-fabfelt text-2xl text-brandInk mb-5">¿Qué quieres regalar hoy?</h3>
+    <div id="categorias-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <p class="col-span-full text-xs font-rounded text-brandInk/40 text-center py-6">Cargando categorías…</p>
+    </div>
+  </section>
+
+  <!-- ── DESTACADOS ── -->
+  <section id="destacados">
+    <h3 class="text-center font-fabfelt text-2xl text-brandInk mb-5">Destacados</h3>
+    <div id="featured-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <p class="col-span-full text-xs font-rounded text-brandInk/40 text-center py-6">Cargando catálogo…</p>
+    </div>
+  </section>
+
+  <!-- ── ASÍ NACE TINTÍN ── -->
+  <section id="asi-nace" class="text-center">
+    <h3 class="font-fabfelt text-2xl text-brandInk mb-4">Así nace tin tin</h3>
+    <p class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
+      Tin... tin... Así suena el instante justo antes de que llegue algo extraordinario.
+      Como el roce de un colibrí sobre una flor, anunciando que algo está por florecer.
+    </p>
+    <a href="#" onclick="showScreen('colecciones'); return false;"
+       class="inline-flex items-center gap-2 mt-6 rounded-full bg-brandGold text-white px-6 py-2.5 font-rounded text-xs font-semibold tracking-wide shadow-sm hover:bg-brandDeepGold transition-colors duration-200">
+      Descubre el instante
+    </a>
+  </section>
+
+  <!-- ── SEPARADOR (CONFIG_SEPARADOR) ── -->
+  <div class="rounded-3xl overflow-hidden shadow-sm">
+    <img id="separator-image" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80&auto=format&fit=crop"
+         alt="" loading="lazy" decoding="async" class="w-full h-48 object-cover" style="object-position: center 40%;" />
+  </div>
+
+  <!-- ── TEXTO 2 + ENLACE NUESTRA HISTORIA ── -->
+  <section id="texto-2" class="text-center">
+    <p class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
+      tintin colibrí no entrega cajas. Entrega el instante exacto en que alguien siente: “pensaron en mí”.
+      Cada caja esconde una historia que se revela capítulo a capítulo — pensada para que abrirla sea, en sí mismo, un pequeño milagro.
+    </p>
+    <a href="#" onclick="showScreen('nuestra-historia'); return false;"
+       class="inline-block mt-5 font-rounded text-sm font-semibold tracking-wide text-[#C48A86] hover:text-brandGold transition-colors duration-200">
+      Nuestra historia →
+    </a>
+  </section>
+
+  </div>
+
+  <!-- ── FOOTER ── -->
+  <footer class="max-w-lg mx-auto px-4 mt-16 pt-10 pb-4 border-t border-brandGold/15">
+    <div id="benefits-footer" class="grid grid-cols-2 sm:grid-cols-4 gap-6 text-center"></div>
+    <div class="h-8"></div>
+  </footer>
+
+</main>
+<!-- ═══════════════════════════════════════════
+     PANTALLA — COLECCIONES (catálogo completo, tarjetas grandes)
+═══════════════════════════════════════════ -->
+<main id="screen-colecciones" class="screen px-4 pt-6 max-w-5xl mx-auto">
+
+  <div class="flex items-center justify-between mb-4 max-w-lg mx-auto md:max-w-none">
+    <h2 id="colecciones-titulo" class="font-fabfelt text-2xl text-brandInk">Colecciones</h2>
+    <span id="catalog-count" class="text-[10px] font-rounded text-brandGold/70 uppercase tracking-widest">✦ piezas</span>
+  </div>
+
+  <!-- Chips de categoría — "Todas" + las 4 categorías configuradas en el Sheet.
+       Se generan dinámicamente en renderCategoriaChips() para no repetir los
+       mismos nombres/colores que ya viven en CATEGORIA_ROW_NAMES. -->
+  <div id="categoria-chips" class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 mb-6 max-w-lg mx-auto md:max-w-none"></div>
+
+  <div id="full-catalog-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+
+  <p id="catalog-empty-msg" class="hidden col-span-full text-sm font-rounded text-brandInk/50 text-center py-10 max-w-lg mx-auto md:max-w-none">
+    Aún no hay productos en esta categoría. <button type="button" onclick="setActiveCategoria('')" class="text-brandDeepGold font-semibold underline underline-offset-2">Ver todas</button>
+  </p>
+
+  <div class="flex gap-3 pt-8 pb-2 max-w-lg mx-auto md:max-w-none">
+    <a href="#" onclick="openWhatsApp(); return false;" target="_blank" class="flex-1 py-3 rounded-2xl bg-brandGold text-white font-rounded text-sm font-semibold text-center shadow-md active:scale-95 transition-transform duration-150">Pedir por WhatsApp</a>
+    <button type="button" onclick="showScreen('inicio')" class="flex-1 py-3 rounded-2xl border-2 border-brandGold text-brandDeepGold font-rounded text-sm font-semibold text-center active:scale-95 transition-transform duration-150">Volver al inicio</button>
+  </div>
+
+  <div class="h-8"></div>
+</main>
+
+<!-- ═══════════════════════════════════════════
+     PANTALLA — NUESTRA HISTORIA
+═══════════════════════════════════════════ -->
+<main id="screen-nuestra-historia" class="screen px-4 pt-6 space-y-4 max-w-lg mx-auto">
+
+  <section id="sobre-nosotros" class="bg-brandBlush rounded-3xl p-6 border border-brandGold/10 shadow-sm">
+    <p id="historia-eyebrow" class="text-[10px] font-rounded tracking-widest uppercase text-brandGold/70 mb-1">✦ Nuestra historia</p>
+    <h2 id="historia-titulo" class="font-fabfelt text-3xl text-brandInk leading-tight mb-3">Nuestra Historia</h2>
+
+    <p id="historia-frase" class="font-fabfelt text-xl text-brandGold leading-snug mb-4">"El sonido que le da nombre a todo"</p>
+
+    <p id="historia-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-3">
+      Hay un instante, antes de cualquier gran momento, en el que algo anuncia que la vida está por cambiar. Un latido distinto. Un silencio que se llena de expectativa. Un pequeño "tin… tin…" que avisa que algo mágico está a punto de suceder.
+    </p>
+    <p id="historia-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-3">
+      Así nació tintin colibrí: de la certeza de que los milagros más grandes casi siempre llegan en formato pequeño y delicado — como el aleteo de un colibrí, el ave más diminuta que existe, pero la única capaz de quedarse suspendida en el aire, vibrando, para tocar una flor con la delicadeza exacta que necesita para florecer.
+    </p>
+    <p id="historia-p3" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
+      Eso hacemos en cada caja: tocamos con esa misma delicadeza. No con ruido, no con exceso — con intención.
+    </p>
+
+    <h3 id="historia-sub1-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Por qué una caja y no un objeto</h3>
+    <p id="historia-sub1-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-1.5">
+      Porque un objeto se olvida. Una historia, no.
+    </p>
+    <p id="historia-sub1-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
+      Diseñamos cada kit para que sea descubierto el momento exacto en que el tiempo se detiene para quien lo recibe. Eso es lo que estás comprando: una experiencia inolvidable.
+    </p>
+
+    <h3 id="historia-sub2-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Tres formas de anunciar algo extraordinario</h3>
+    <p id="historia-sub2-intro" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-2">
+      Porque cada etapa de la vida merece su propio "tin tin":
+    </p>
+    <ul class="space-y-1.5 mb-3 pl-1">
+      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
+        <span class="text-brandGold flex-shrink-0">✦</span>
+        <span id="historia-bullet1">Bebés, para anunciar una llegada — antes incluso de que el mundo la conozca.</span>
+      </li>
+      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
+        <span class="text-brandGold flex-shrink-0">✦</span>
+        <span id="historia-bullet2">Niñas, para anunciar que la imaginación tiene permiso de volar y para contarles que su valor interior está listo para ser descubierto.</span>
+      </li>
+      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
+        <span class="text-brandGold flex-shrink-0">✦</span>
+        <span id="historia-bullet3">Mujeres, para anunciar que está bien, de vez en cuando, pausar.</span>
+      </li>
+    </ul>
+    <p id="historia-sub2-cierre" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
+      Tres líneas, un mismo gesto: dejar algo floreciendo donde tocamos.
+    </p>
+
+    <h3 id="historia-sub3-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Nuestra promesa</h3>
+    <p id="historia-sub3-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-1.5">
+      No vendemos cajas. Vendemos el instante exacto en que alguien levanta una tapa y, por unos segundos, siente que la magia es real.
+    </p>
+    <p id="historia-sub3-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
+      Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.
+    </p>
+
+    <div id="benefits-historia" class="grid grid-cols-4 gap-2 mb-5"></div>
+
+    <a href="#" onclick="showScreen('colecciones'); return false;"
+       class="block w-full py-3 rounded-2xl bg-brandGold text-white font-rounded text-sm font-semibold text-center shadow-sm hover:bg-brandDeepGold transition-colors duration-200">
+      <span id="historia-boton">Vive tu instante.</span>
+    </a>
+  </section>
+
+  <div class="flex gap-3 pt-1 pb-2">
+    <a href="#" onclick="openWhatsApp(); return false;" target="_blank" class="flex-1 py-3 rounded-2xl bg-brandGold text-white font-rounded text-sm font-semibold text-center shadow-md active:scale-95 transition-transform duration-150">Escríbenos por WhatsApp</a>
+    <button type="button" onclick="showScreen('inicio')" class="flex-1 py-3 rounded-2xl border-2 border-brandGold text-brandDeepGold font-rounded text-sm font-semibold text-center active:scale-95 transition-transform duration-150">Volver al inicio</button>
+  </div>
+
+  <div class="h-8"></div>
+
+</main>
+
+<!-- ── WHATSAPP FLOAT ── -->
+<a href="#" onclick="openWhatsApp(); return false;" target="_blank"
+   class="wa-btn fixed bottom-6 right-5 w-14 h-14 rounded-full bg-[#25D366] flex items-center justify-center shadow-xl z-50">
+  <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+    <path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.535 5.845L.057 23.552a.5.5 0 0 0 .6.607l5.803-1.46A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.12-1.44l-.367-.217-3.803.957.996-3.706-.24-.38A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/>
+  </svg>
+</a>
+
+<script>
+// ═══════════════════════════════════════════
+// 🔧 CONFIGURACIÓN — enlace al CSV publicado de Google Sheets
+// Archivo → Compartir → Publicar en la web → CSV
+// ═══════════════════════════════════════════
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSa5j883G-wOtHoKfIkUc2D4OGZg-dbUPhG6cHvSql4gNUMMYeBNhgtltdf5uoo_iJvIyx1lIUuMyyD/pub?output=csv';
+
+// Endpoint del Google Apps Script publicado para sumar Likes (ver script .gs entregado aparte)
+const LIKES_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxro3yFMCGWgbrcpvddBSgFfVgDwI1Ip-kQbKdjbeniw1C8U_iYStbxsBcdaS5u6Hk8hA/exec';
+
+const WHATSAPP_NUMBER = '573136550926';
+const WHATSAPP_DEFAULT_MESSAGE = '¡Hola tintin colibrí! Quiero recibir asesoría personalizada para elegir un regalo especial.';
+
+function openWhatsApp(message = WHATSAPP_DEFAULT_MESSAGE) {
+  const encoded = encodeURIComponent(message);
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encoded}`, '_blank', 'noopener,noreferrer');
+}
+
+// Banner por defecto, usado solo si la fila CONFIG_BANNER no existe en el CSV.
+// El texto sigue el formato "Antetítulo ; Script ; Título ; Párrafo ; Enfoque de imagen"
+// El 5º campo (Enfoque de imagen) es OPCIONAL: controla qué parte de la foto se
+// prioriza cuando se recorta para llenar el hero (evita que tape caras/objetos
+// importantes). Valores válidos: "center", "top", "bottom", "left", "right",
+// o un porcentaje tipo "center 30%" (30% = qué tan abajo cae el punto de enfoque).
+const BANNER_DEFAULT = {
+  image: 'https://images.unsplash.com/photo-1490750967868-88df5691cc5a?w=1400&q=85&auto=format&fit=crop',
+  text:  'Colección nueva ; Tin... tin... ; El anuncio de algo extraordinario. ; Cajas que cuentan una historia, pensadas para el instante justo en que alguien se siente visto. ; center 30%'
+};
+
+// Fila CONFIG_SEPARADOR — imagen divisoria entre "Así nace tin tin" y el texto 2.
+// Mismo campo opcional de "Enfoque de imagen" que CONFIG_BANNER, vía Descripcion.
+const SEPARATOR_DEFAULT = {
+  image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80&auto=format&fit=crop',
+  focus: 'center 40%'
+};
+
+// Fila CONFIG_TINTIN_COLIBRI — submensaje de marca bajo el logo (columna Descripcion)
+const TINTIN_BRAND_DEFAULT = {
+  text: 'vive tu instante'
+};
+
+// Fila CONFIG_HISTORIA — todo el texto de la pantalla "Nuestra historia".
+// Cada campo de abajo es UNA LÍNEA dentro de la misma celda "Descripcion" del
+// Sheet (Alt+Enter en Google Sheets = salto de línea sin salir de la celda),
+// en este orden exacto:
+//   1. Eyebrow          (ej. "✦ Nuestra historia")
+//   2. Título           (ej. "Nuestra Historia")
+//   3. Frase destacada  (ej. "El sonido que le da nombre a todo")
+//   4. Párrafo 1
+//   5. Párrafo 2
+//   6. Párrafo 3
+//   7. Subtítulo "Por qué una caja"
+//   8. Párrafo A de esa sección
+//   9. Párrafo B de esa sección
+//  10. Subtítulo "Tres formas"
+//  11. Frase intro de esa sección
+//  12. Bullet 1
+//  13. Bullet 2
+//  14. Bullet 3
+//  15. Párrafo de cierre de esa sección
+//  16. Subtítulo "Nuestra promesa"
+//  17. Párrafo A de esa sección
+//  18. Párrafo B de esa sección
+//  19. Texto del botón final
+// Si la fila no existe en el Sheet, o vino con menos líneas de las 19
+// esperadas, cada línea faltante se completa con el texto original de
+// fábrica (definido aquí abajo) para que la sección nunca se vea rota.
+const HISTORIA_DEFAULT_LINES = [
+  '✦ Nuestra historia',
+  'Nuestra Historia',
+  'El sonido que le da nombre a todo',
+  'Hay un instante, antes de cualquier gran momento, en el que algo anuncia que la vida está por cambiar. Un latido distinto. Un silencio que se llena de expectativa. Un pequeño "tin… tin…" que avisa que algo mágico está a punto de suceder.',
+  'Así nació tintin colibrí: de la certeza de que los milagros más grandes casi siempre llegan en formato pequeño y delicado — como el aleteo de un colibrí, el ave más diminuta que existe, pero la única capaz de quedarse suspendida en el aire, vibrando, para tocar una flor con la delicadeza exacta que necesita para florecer.',
+  'Eso hacemos en cada caja: tocamos con esa misma delicadeza. No con ruido, no con exceso — con intención.',
+  'Por qué una caja y no un objeto',
+  'Porque un objeto se olvida. Una historia, no.',
+  'Diseñamos cada kit para que sea descubierto el momento exacto en que el tiempo se detiene para quien lo recibe. Eso es lo que estás comprando: una experiencia inolvidable.',
+  'Tres formas de anunciar algo extraordinario',
+  'Porque cada etapa de la vida merece su propio "tin tin":',
+  'Bebés, para anunciar una llegada — antes incluso de que el mundo la conozca.',
+  'Niñas, para anunciar que la imaginación tiene permiso de volar y para contarles que su valor interior está listo para ser descubierto.',
+  'Mujeres, para anunciar que está bien, de vez en cuando, pausar.',
+  'Tres líneas, un mismo gesto: dejar algo floreciendo donde tocamos.',
+  'Nuestra promesa',
+  'No vendemos cajas. Vendemos el instante exacto en que alguien levanta una tapa y, por unos segundos, siente que la magia es real.',
+  'Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.',
+  'Vive tu instante.'
+];
+
+// Filas CONFIG_CATEGORIA_* — orden fijo en el que se muestran las 4 cajas de "¿Qué quieres regalar hoy?"
+// Cada fila trae: Imagen (ícono fondo negro/líneas doradas), 'Color fondo banners' (hex), y
+// Descripcion con el formato "Título ; subtexto" (separado por " ; ")
+const CATEGORIA_ROW_NAMES = [
+  'CONFIG_CATEGORIA_BIENVENIDA_BEBE',
+  'CONFIG_CATEGORIA_SORPRENDER_NINAS',
+  'CONFIG_CATEGORIA_MOMENTO_SI_MISMA',
+  'CONFIG_CATEGORIA_SORPRESAS_INDIVIDUALES'
+];
+
+// Fallback visual — se usa por categoría si su fila no vino en el Excel.
+// "valor" es el texto EXACTO que debe existir en la columna "Categoria" de
+// cada producto en el Sheet para que ese producto aparezca al filtrar por esta
+// caja (ver README_SHEET más abajo). No se traduce ni se edita desde el Excel:
+// es el identificador estable, independiente del título visible (que sí es editable).
+const CATEGORIA_DEFAULTS = {
+  CONFIG_CATEGORIA_BIENVENIDA_BEBE:        { color: '#F3D7D2', titulo: 'Dar la bienvenida.',         subtexto: 'Para recibir una vida nueva con ternura',                 valor: 'Bebé' },
+  CONFIG_CATEGORIA_SORPRENDER_NINAS:       { color: '#F6EFE5', titulo: 'Sorprender Niñas.',           subtexto: 'Descubrir su imaginación y su riqueza interior',          valor: 'Niña' },
+  CONFIG_CATEGORIA_MOMENTO_SI_MISMA:       { color: '#C8DCE7', titulo: 'Un momento para sí misma',    subtexto: 'Para recordarle que merece pausar y sentir.',             valor: 'Mujer' },
+  CONFIG_CATEGORIA_SORPRESAS_INDIVIDUALES: { color: '#EADCF5', titulo: 'Sorpresas individuales.',     subtexto: 'Un pequeño detalle para alegrar el día de alguien',       valor: 'Alguien especial' }
+};
+
+// Estado en memoria: todo el catálogo ya parseado desde el CSV (sin filas de config)
+let CATALOG = [];
+let BANNER_CONFIG = null;
+let SEPARATOR_CONFIG = null;
+let TINTIN_BRAND_CONFIG = null;
+let HISTORIA_CONFIG = null;
+let CATEGORIA_CONFIGS = {};
+
+// Categoría actualmente seleccionada en la pantalla "Colecciones" ('' = todas)
+let ACTIVE_CATEGORIA = '';
+
+// ═══════════════════════════════════════════
+// Parser manual de CSV
+// Soporta comillas, comas dentro de comillas y comillas escapadas ("")
+// ═══════════════════════════════════════════
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+
+  const clean = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  for (let i = 0; i < clean.length; i++) {
+    const char = clean[i];
+    const next = clean[i + 1];
+
+    if (inQuotes) {
+      if (char === '"' && next === '"') {
+        field += '"';
+        i++;
+      } else if (char === '"') {
+        inQuotes = false;
+      } else {
+        field += char;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+      } else if (char === ',') {
+        row.push(field);
+        field = '';
+      } else if (char === '\n') {
+        row.push(field);
+        rows.push(row);
+        row = [];
+        field = '';
+      } else {
+        field += char;
+      }
+    }
+  }
+  if (field.length > 0 || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+
+  if (rows.length === 0) return [];
+
+  const headers = rows[0].map(h => h.trim());
+  const objects = [];
+
+  for (let r = 1; r < rows.length; r++) {
+    const rawRow = rows[r];
+    if (rawRow.every(cell => cell.trim() === '')) continue;
+
+    const obj = {};
+    headers.forEach((header, idx) => {
+      let value = (rawRow[idx] !== undefined ? rawRow[idx] : '').trim();
+      value = value.replace(/^"+|"+$/g, '').trim();
+      obj[header] = value;
+    });
+    objects.push(obj);
+  }
+
+  return objects;
+}
+
+// ═══════════════════════════════════════════
+// initCatalog() — descarga el CSV, separa filas CONFIG_* y arranca el render
+// Columnas esperadas: Nombre, Precio, Imagen, Colores, Descripcion, Disponible,
+// Destacado, Minifrase, Likes
+// ═══════════════════════════════════════════
+async function initCatalog() {
+  renderSkeletonLoader();
+
+  if (window.location.protocol === 'file:') {
+    showCatalogError('file-protocol');
+    return;
+  }
+
+  try {
+    // Timeout defensivo: si el Sheet tarda demasiado en responder (red lenta,
+    // Google Sheets caído), se corta la espera a los 12s en vez de dejar el
+    // skeleton girando indefinidamente y mostrar el mensaje de error normal.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+    let response;
+    try {
+      response = await fetch(SHEET_URL, { cache: 'no-store', signal: controller.signal });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+    if (!response.ok) throw { type: 'http', status: response.status };
+
+    const csvText = await response.text();
+    const rows = parseCSV(csvText);
+
+    if (!rows.length) throw { type: 'empty' };
+
+    BANNER_CONFIG = null;
+    SEPARATOR_CONFIG = null;
+    TINTIN_BRAND_CONFIG = null;
+    HISTORIA_CONFIG = null;
+    CATEGORIA_CONFIGS = {};
+    CATALOG = [];
+
+    rows.forEach(row => {
+      const nombre = (row['Nombre'] || '').toUpperCase().trim();
+      if (nombre === 'CONFIG_BANNER') {
+        BANNER_CONFIG = { image: row['Imagen'] || '', text: row['Descripcion'] || '' };
+      } else if (nombre === 'CONFIG_SEPARADOR') {
+        SEPARATOR_CONFIG = { image: row['Imagen'] || '', focus: row['Descripcion'] || '' };
+      } else if (nombre === 'CONFIG_TINTIN_COLIBRI') {
+        TINTIN_BRAND_CONFIG = { text: row['Descripcion'] || '' };
+      } else if (nombre === 'CONFIG_HISTORIA') {
+        HISTORIA_CONFIG = { text: row['Descripcion'] || '' };
+      } else if (CATEGORIA_ROW_NAMES.includes(nombre)) {
+        CATEGORIA_CONFIGS[nombre] = {
+          image: row['Imagen'] || '',
+          color: (row['Color fondo banners'] || '').trim(),
+          descripcion: row['Descripcion'] || ''
+        };
+      } else if (row['Nombre'] && row['Nombre'].trim() !== '') {
+        CATALOG.push(row);
+      }
+    });
+
+    if (!CATALOG.length) throw { type: 'no-products' };
+
+    applyBanner();
+    applySeparator();
+    applyTintinBrand();
+    applyHistoria();
+    renderCategorias();
+    renderFeatured();
+    renderFullCatalogIfActive();
+
+  } catch (err) {
+    console.error('Error cargando el catálogo desde el CSV:', err);
+    const type = (err && err.type) ? err.type
+                : (err && err.name === 'AbortError') ? 'timeout'
+                : (err instanceof TypeError) ? 'network-or-cors'
+                : 'unknown';
+    showCatalogError(type, err);
+  }
+}
+
+function showCatalogError(type, err) {
+  const featuredGrid = document.getElementById('featured-grid');
+  if (!featuredGrid) return;
+
+  const messages = {
+    'file-protocol': {
+      title: 'Estás abriendo el archivo localmente (file://)',
+      detail: 'Los navegadores bloquean la conexión al CSV cuando el archivo se abre con doble clic. Sube el sitio a tu hosting o pruébalo con un servidor local.'
+    },
+    'http': {
+      title: `No se pudo descargar el CSV (HTTP ${err && err.status})`,
+      detail: 'Revisa que el enlace de SHEET_URL siga siendo válido y que el Sheet esté publicado en la web (Archivo → Compartir → Publicar en la web → CSV).'
+    },
+    'empty': {
+      title: 'El CSV se descargó pero está vacío',
+      detail: 'Verifica que la hoja publicada tenga encabezados y al menos una fila de producto.'
+    },
+    'no-products': {
+      title: 'El CSV cargó pero no se encontró ningún producto',
+      detail: 'Revisa que la columna "Nombre" esté completa en cada fila (excepto las filas CONFIG_*).'
+    },
+    'network-or-cors': {
+      title: 'No se pudo conectar con Google Sheets',
+      detail: 'Esto suele pasar por falta de conexión a internet, o porque el sitio se está abriendo desde file:// en vez de http(s)://.'
+    },
+    'timeout': {
+      title: 'Google Sheets está tardando más de lo normal',
+      detail: 'La conexión se cortó tras esperar 12 segundos. Verifica tu internet y vuelve a intentar en un momento.'
+    },
+    'unknown': {
+      title: 'No pudimos cargar el catálogo en este momento',
+      detail: 'Por favor intenta de nuevo en unos minutos.'
+    }
+  };
+
+  const msg = messages[type] || messages.unknown;
+
+  dismissSkeletonThen(() => {
+    featuredGrid.innerHTML = `
+      <div class="col-span-full bg-brandBlush rounded-3xl p-5 text-center border border-brandGold/10 shadow-sm">
+        <p class="text-sm font-rounded font-semibold text-brandInk/80">${msg.title}</p>
+        <p class="text-xs font-rounded text-brandInk/55 mt-2 leading-relaxed">${msg.detail}</p>
+      </div>`;
+  });
+}
+
+// ═══════════════════════════════════════════
+// Banner (Hero) — controlado por la fila CONFIG_BANNER.
+// Descripcion viene como "Antetítulo ; Script ; Título ; Párrafo" (split por ';')
+// ═══════════════════════════════════════════
+function applyBanner() {
+  const cfg = BANNER_CONFIG || BANNER_DEFAULT;
+  const imgEl      = document.getElementById('hero-image');
+  const eyebrowEl  = document.getElementById('hero-eyebrow');
+  const scriptEl   = document.getElementById('hero-script');
+  const titleEl    = document.getElementById('hero-title');
+  const bodyEl     = document.getElementById('hero-body');
+
+  if (cfg.image && imgEl) imgEl.src = cfg.image;
+
+  const parts = String(cfg.text || '').split(';').map(p => p.trim());
+  const [eyebrow, script, title, body, focus] = parts;
+
+  if (eyebrow && eyebrowEl) eyebrowEl.innerHTML = `<span>✦</span> ${escapeHtml(eyebrow)}`;
+  if (script && scriptEl) scriptEl.textContent = script;
+  if (title && titleEl) titleEl.textContent = title;
+  if (body && bodyEl) bodyEl.textContent = body;
+  // Enfoque de imagen (5º campo, opcional): evita que el recorte automático
+  // corte caras u objetos importantes de la foto. Si no viene, se conserva el
+  // valor por defecto que ya trae la etiqueta <img> en el HTML.
+  if (focus && imgEl) imgEl.style.objectPosition = focus;
+}
+
+function applySeparator() {
+  const cfg = SEPARATOR_CONFIG || SEPARATOR_DEFAULT;
+  const imgEl = document.getElementById('separator-image');
+  if (cfg.image && imgEl) imgEl.src = cfg.image;
+  const focus = (cfg.focus || '').trim();
+  if (focus && imgEl) imgEl.style.objectPosition = focus;
+}
+
+// Submensaje de marca (bajo el logo) — controlado por la fila CONFIG_TINTIN_COLIBRI.
+// Por defecto muestra "vive tu instante" si la fila no existe o viene vacía.
+function applyTintinBrand() {
+  const cfg = TINTIN_BRAND_CONFIG || TINTIN_BRAND_DEFAULT;
+  const el = document.getElementById('brand-submessage');
+  const text = (cfg.text || '').trim() || TINTIN_BRAND_DEFAULT.text;
+  if (el) el.textContent = text;
+}
+
+// Texto completo de "Nuestra historia" — controlado por la fila CONFIG_HISTORIA.
+// La celda "Descripcion" trae hasta 19 líneas (una por Alt+Enter en el Sheet);
+// ver HISTORIA_DEFAULT_LINES arriba para el orden exacto. Cualquier línea que
+// no llegue (fila ausente, o con menos líneas de las esperadas) se completa
+// con el texto de fábrica correspondiente, así la sección nunca queda vacía
+// a medias por un error de captura en el Sheet.
+const HISTORIA_ELEMENT_IDS = [
+  'historia-eyebrow', 'historia-titulo', 'historia-frase',
+  'historia-p1', 'historia-p2', 'historia-p3',
+  'historia-sub1-titulo', 'historia-sub1-p1', 'historia-sub1-p2',
+  'historia-sub2-titulo', 'historia-sub2-intro',
+  'historia-bullet1', 'historia-bullet2', 'historia-bullet3', 'historia-sub2-cierre',
+  'historia-sub3-titulo', 'historia-sub3-p1', 'historia-sub3-p2',
+  'historia-boton'
+];
+
+function applyHistoria() {
+  const rawText = (HISTORIA_CONFIG && HISTORIA_CONFIG.text) || '';
+  // Acepta tanto saltos de línea reales (Alt+Enter en Sheets) como '|' por si
+  // alguien prefiere escribirlo todo en una sola línea separado por barras.
+  const lines = rawText.split(/\r\n|\r|\n|\|/).map(l => l.trim());
+
+  HISTORIA_ELEMENT_IDS.forEach((id, i) => {
+    const value = lines[i] && lines[i].length > 0 ? lines[i] : HISTORIA_DEFAULT_LINES[i];
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  });
+}
+
+// ═══════════════════════════════════════════
+// Cajas de categorías ("¿Qué quieres regalar hoy?") — controladas por las 4 filas
+// CONFIG_CATEGORIA_*. Cada una trae su propio color de fondo (columna
+// "Color fondo banners") y su ícono (columna Imagen).
+//
+// Los archivos de ícono llegan con fondo NEGRO y líneas DORADAS. mask-image
+// usa el canal alfa (no la luminosidad) como máscara, así que en un PNG/JPG
+// opaco no recorta nada — por eso antes se veía el cuadrado dorado sólido.
+// La solución robusta (funciona igual en todos los navegadores) es procesar
+// la imagen en un <canvas>: por cada píxel, su propio nivel de oscuridad se
+// convierte en su nivel de transparencia (negro puro → invisible, dorado →
+// visible con su color original intacto, sin aproximarlo a un solo tono).
+// ═══════════════════════════════════════════
+let categoriaIconCounter = 0;
+
+function categoriaIconMarkup(imageUrl) {
+  if (!imageUrl) return '';
+  categoriaIconCounter += 1;
+  const canvasId = `categoria-icon-${categoriaIconCounter}`;
+  // data-src en vez de src: se carga vía JS para poder procesar el canvas antes de mostrarlo
+  return `<canvas id="${canvasId}" data-src="${escapeHtml(imageUrl)}" class="w-10 h-10 mx-auto mb-3 categoria-icon-canvas" width="200" height="200"></canvas>`;
+}
+
+// Recorre cada <canvas data-src> pendiente, carga su imagen origen y quita el
+// fondo negro convirtiendo oscuridad → transparencia (sin tocar el color).
+function processCategoriaIcons() {
+  document.querySelectorAll('canvas.categoria-icon-canvas[data-src]').forEach(canvas => {
+    const url = canvas.dataset.src;
+    if (!url) return;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const size = 200;
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Encajar la imagen centrada tipo "contain" dentro del canvas cuadrado
+      const scale = Math.min(size / img.width, size / img.height);
+      const drawW = img.width * scale;
+      const drawH = img.height * scale;
+      const offsetX = (size - drawW) / 2;
+      const offsetY = (size - drawH) / 2;
+
+      ctx.drawImage(img, offsetX, offsetY, drawW, drawH);
+
+      try {
+        const imageData = ctx.getImageData(0, 0, size, size);
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          // Luminosidad del píxel: negro puro = 0 (totalmente transparente),
+          // dorado/claro = alto (totalmente opaco). El color (r,g,b) queda intacto.
+          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+          data[i + 3] = Math.round(Math.min(1, luminance * 1.6) * 255);
+        }
+        ctx.putImageData(imageData, 0, 0);
+      } catch (e) {
+        // Si el navegador bloquea getImageData (CORS sin cabeceras), se deja la imagen tal cual
+        console.warn('No se pudo procesar el ícono de categoría (posible CORS):', e);
+      }
+
+      canvas.removeAttribute('data-src');
+    };
+    img.onerror = () => {
+      canvas.removeAttribute('data-src');
+    };
+    img.src = url;
+  });
+}
+
+// Resuelve título/subtexto/color/valor de una fila CONFIG_CATEGORIA_*, aplicando
+// el fallback visual cuando la fila no vino del Excel o vino incompleta.
+// Se usa tanto para las 4 cajas de Inicio como para los chips de "Colecciones",
+// para no repetir el mismo parseo de "Título ; subtexto" en dos sitios.
+function resolveCategoriaTexto(rowName) {
+  const fallback = CATEGORIA_DEFAULTS[rowName];
+  const cfg = CATEGORIA_CONFIGS[rowName];
+
+  const color = (cfg && cfg.color) || fallback.color;
+  let titulo = fallback.titulo;
+  let subtexto = fallback.subtexto;
+
+  if (cfg && cfg.descripcion) {
+    const parts = cfg.descripcion.split(';').map(p => p.trim());
+    if (parts[0]) titulo = parts[0];
+    if (parts[1]) subtexto = parts[1];
+  }
+
+  return { titulo, subtexto, color, valor: fallback.valor, image: cfg && cfg.image };
+}
+
+function renderCategorias() {
+  const grid = document.getElementById('categorias-grid');
+  if (!grid) return;
+
+  const cards = CATEGORIA_ROW_NAMES.map(rowName => {
+    const { titulo, subtexto, color, valor: valorCategoria, image } = resolveCategoriaTexto(rowName);
+
+    const iconMarkup = image
+      ? categoriaIconMarkup(image)
+      : `<div class="w-10 h-10 mx-auto mb-3"></div>`; // sin ícono todavía en el Excel: reserva el espacio
+
+    return `
+      <div class="rounded-3xl p-5 shadow-sm text-center cursor-pointer tap-feedback"
+           style="background:${escapeHtml(color)};"
+           role="button" tabindex="0"
+           onclick="goToCategoria('${escapeHtml(valorCategoria)}')"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToCategoria('${escapeHtml(valorCategoria)}')}">
+        ${iconMarkup}
+        <p class="font-rounded font-bold text-sm text-brandInk">${escapeHtml(titulo)}</p>
+        <p class="font-rounded text-xs text-brandInk/65 mt-1.5 leading-relaxed">${escapeHtml(subtexto)}</p>
+      </div>
+    `;
+  });
+
+  grid.innerHTML = cards.join('');
+  processCategoriaIcons();
+}
+
+// Navega a "Colecciones" ya filtrado por la categoría elegida desde una caja de inicio
+function goToCategoria(valorCategoria) {
+  showScreen('colecciones');
+  setActiveCategoria(valorCategoria);
+}
+
+// ═══════════════════════════════════════════
+// Helpers de datos
+// ═══════════════════════════════════════════
+function isSi(value) {
+  return (value || '').toUpperCase().trim() === 'SI';
+}
+
+function isDisponible(product) {
+  return (product['Disponible'] || '').toUpperCase().trim() !== 'NO';
+}
+
+function isDestacado(product) {
+  return isSi(product['Destacado']);
+}
+
+// Columna "Categoria" del Sheet — admite varias categorías por producto
+// separadas por coma (ej. "Bebé, Alguien especial"). Un producto sin esta
+// columna llena simplemente no aparece en ningún filtro (solo en "Todas").
+function getProductCategorias(product) {
+  const raw = (product['Categoria'] || '').trim();
+  if (!raw) return [];
+  return raw.split(',').map(c => normalizeText(c)).filter(c => c.length > 0);
+}
+
+function productMatchesCategoria(product, valorCategoria) {
+  if (!valorCategoria) return true; // '' = Todas
+  const categorias = getProductCategorias(product);
+  return categorias.includes(normalizeText(valorCategoria));
+}
+
+function formatPriceCOP(rawPrice) {
+  const digits = String(rawPrice || '').replace(/[^\d]/g, '');
+  const number = digits ? parseInt(digits, 10) : 0;
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0
+  }).format(number);
+}
+
+function getImageList(product) {
+  const raw = product['Imagen'] || '';
+  return raw.split(',').map(u => u.trim()).filter(u => u.length > 0);
+}
+
+function getColorList(product) {
+  const raw = (product['Colores'] || '').trim();
+  if (!raw || /^variados?$/i.test(raw)) return [];
+  return raw.split('•').map(c => c.trim()).filter(c => c.length > 0);
+}
+
+function isVariadosColor(product) {
+  const raw = (product['Colores'] || '').trim();
+  return !raw || /^variados?$/i.test(raw);
+}
+
+function productKey(product, index) {
+  return 'p' + index;
+}
+// ═══════════════════════════════════════════
+// Render de círculos de color dentro de la tarjeta expandida
+// ═══════════════════════════════════════════
+function colorCirclesMarkup(product, key) {
+  if (isVariadosColor(product)) {
+    return `<p class="text-xs font-rounded text-brandInk/55 italic mt-1 mb-4">Colores: Variados</p>`;
+  }
+  const colors = getColorList(product);
+  if (!colors.length) return '';
+
+  const circles = colors.map((color, i) => `
+    <div class="color-circle ${i === 0 ? 'selected' : ''}"
+         style="background:${colorToCss(color)};"
+         title="${color}"
+         data-color="${color}"
+         data-key="${key}"
+         onclick="event.stopPropagation(); selectColor(this)"></div>
+  `).join('');
+
+  return `
+    <p class="text-xs font-rounded text-brandInk/60 mb-2 tracking-wide">Color:</p>
+    <div class="flex gap-2 mb-4 flex-wrap">${circles}</div>
+  `;
+}
+
+const COLOR_MAP = {
+  'rosa': '#e8b4c0', 'rojo': '#c0102a', 'blanco': '#f5f0eb', 'menta': '#b5c9b0',
+  'vainilla': '#f5e6c8', 'sandalo': '#c8ddd4', 'jazmin': '#f0e0f0',
+  'natural': '#d4b896', 'lila': '#c8b4d0', 'sage': '#b4c8c4',
+  'dorado': '#b08840', 'negro': '#2a2a2a', 'azul': '#7a9bc2', 'verde': '#7fa37f',
+  'morado': '#9b7eb8', 'amarillo': '#e8d27a', 'gris': '#a8a8a8', 'beige': '#e3d5c0', 'crema': '#f3e8d8',
+  'nude': '#e7cfb2', 'camel': '#c79a6b', 'naranja': '#e0935a', 'coral': '#e8927e', 'fucsia': '#cc4c8f', 'turquesa': '#5fb8b0',
+  'plateado': '#c4c4c4', 'cafe': '#6b4c3a', 'marron': '#6b4c3a', 'vino': '#7a2436',
+  'mostaza': '#cda43a', 'oliva': '#7d8a5a', 'durazno': '#f0bfa0', 'perla': '#ede6dc',
+  'celeste': '#a8d0e6', 'aqua': '#7fc8c4', 'salmon': '#f2a791', 'caramelo': '#bd8a4f',
+  'verde menta': '#9fd4b8', 'verde oliva': '#7d8a5a', 'verde botella': '#2f5d4f',
+  'verde agua': '#9fd9cf', 'verde esmeralda': '#3a8c6e', 'verde militar': '#5c6b47',
+  'azul claro': '#a8cce8', 'azul oscuro': '#2c4d6b', 'azul rey': '#2e4f9e',
+  'azul marino': '#1f3450', 'azul cielo': '#bcdcef', 'azul petroleo': '#2d5f63',
+  'rosa pastel': '#f4cdd7', 'rosa fuerte': '#e0568f', 'rosa palo': '#d9a8a8',
+  'rosa viejo': '#c48a86', 'rosa claro': '#f2d6dd',
+  'rojo vino': '#7a2436', 'rojo intenso': '#a40f23', 'rojo coral': '#e8584a',
+  'amarillo pastel': '#f3e5a8', 'amarillo mostaza': '#cda43a',
+  'gris claro': '#d4d4d4', 'gris oscuro': '#5c5c5c', 'gris perla': '#dcdcdc',
+  'lila pastel': '#ddc9e6', 'morado oscuro': '#5e3f73',
+  'beige claro': '#ece1d0', 'cafe oscuro': '#4a3326', 'cafe claro': '#a9826a'
+};
+
+function normalizeText(text) {
+  return String(text || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizeColorName(name) { return normalizeText(name); }
+
+function colorToCss(name) {
+  const key = normalizeColorName(name);
+  if (!key) return '#cbb8a8';
+  if (COLOR_MAP[key]) return COLOR_MAP[key];
+  const words = key.split(' ');
+  for (const word of words) {
+    if (COLOR_MAP[word]) return COLOR_MAP[word];
+  }
+  return '#cbb8a8';
+}
+
+// ═══════════════════════════════════════════
+// Carrusel multimedia dentro de la tarjeta expandida — se conserva intacto
+// ═══════════════════════════════════════════
+function isVideoUrl(url) {
+  const raw = String(url || '').toLowerCase();
+  const clean = raw.split('?')[0].split('#')[0];
+  const hasVideoExtension = /\.(mp4|webm|mov|m4v)$/.test(clean);
+  const hasImageExtension = /\.(jpg|jpeg|png|gif|webp|avif|bmp|svg)$/.test(clean);
+  const hasVideoParam = /[?&]video=/.test(raw);
+  const isCatboxWithoutImageExt = raw.includes('catbox') && !hasImageExtension;
+  return hasVideoExtension || hasVideoParam || isCatboxWithoutImageExt;
+}
+
+function thumbnailMediaMarkup(url, altText) {
+  if (!url) return '';
+  if (isVideoUrl(url)) {
+    // preload="metadata" en vez de "auto": basta con conocer dimensiones/duración
+    // para poder reproducir en loop; "auto" descarga el video completo de entrada
+    // aunque la tarjeta todavía no sea visible, lo cual es el mayor culpable de
+    // que las miniaturas tarden en aparecer cuando hay varios videos en pantalla.
+    return `<video data-autoplay-video autoplay loop muted playsinline preload="metadata" class="w-full h-full object-cover object-center">
+      <source src="${url}" type="video/mp4">
+    </video>`;
+  }
+  // loading="lazy": el navegador solo descarga la imagen cuando la tarjeta está
+  // por entrar en pantalla, en vez de descargar TODAS las miniaturas del grid
+  // de una vez. decoding="async" evita que decodificar la imagen bloquee el
+  // hilo principal justo cuando ya llegó (causa de "saltos" al pintar la tarjeta).
+  return `<img src="${url}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" class="w-full h-full object-cover object-center" />`;
+}
+
+function mediaSlideMarkup(url, altText) {
+  if (isVideoUrl(url)) {
+    // Este carrusel solo se ve al expandir la tarjeta (ver toggleCard), así que
+    // "metadata" es suficiente hasta ese momento — igual que en la miniatura.
+    return `
+      <div class="carousel-slide">
+        <video data-autoplay-video autoplay loop muted playsinline preload="metadata" class="w-full h-auto rounded-xl">
+          <source src="${url}" type="video/mp4">
+        </video>
+      </div>`;
+  }
+  return `
+    <div class="carousel-slide"><img src="${url}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" class="w-full h-auto object-contain" draggable="false"></div>`;
+}
+
+function carouselMarkup(product, key) {
+  const images = getImageList(product);
+  if (!images.length) return '';
+
+  const slides = images.map(url => mediaSlideMarkup(url, product['Nombre'])).join('');
+
+  const dots = images.length > 1 ? `
+    <div id="dots-${key}" class="flex justify-center gap-1.5 mb-4">
+      ${images.map((_, i) => `<div class="dot ${i === 0 ? 'active' : ''} h-2 w-2 rounded-full ${i === 0 ? 'bg-brandGold' : 'bg-brandGold/30'}"></div>`).join('')}
+    </div>` : '';
+
+  return `
+    <div class="relative mb-2 carousel-viewport" id="viewport-${key}">
+      <div class="carousel-track" id="carousel-${key}" data-index="0" data-count="${images.length}">
+        ${slides}
+      </div>
+    </div>
+    ${dots}
+  `;
+}
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+const WHATSAPP_ICON_SVG = `<svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.124.558 4.118 1.535 5.845L.057 23.552a.5.5 0 0 0 .6.607l5.803-1.46A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.818a9.8 9.8 0 0 1-5.12-1.44l-.367-.217-3.803.957.996-3.706-.24-.38A9.818 9.818 0 0 1 2.182 12C2.182 6.57 6.57 2.182 12 2.182S21.818 6.57 21.818 12 17.43 21.818 12 21.818z"/></svg>`;
+
+const HEART_ICON_SVG = `<svg viewBox="0 0 24 24" class="w-5 h-5" fill="none" stroke="#3D2B1F" stroke-width="2"><path d="M12 21s-7.2-4.5-9.6-9C.6 8.4 2.4 5 6 5c2 0 3.4 1 6 3.6C14.6 6 16 5 18 5c3.6 0 5.4 3.4 3.6 7-2.4 4.5-9.6 9-9.6 9z"/></svg>`;
+
+// ═══════════════════════════════════════════
+// Tarjeta GRANDE de producto — imagen ocupando la mitad superior, corazón de
+// like flotante, título + minifrase + colores visibles sin expandir.
+// Al hacer clic en cualquier parte (excepto el corazón) se expande mostrando
+// precio, descripción completa y botón de WhatsApp.
+// ═══════════════════════════════════════════
+function productCardMarkup(product, index) {
+  const key = productKey(product, index);
+  const disponible = isDisponible(product);
+  const price = formatPriceCOP(product['Precio']);
+  const images = getImageList(product);
+  const coverImg = images[0] || '';
+  const minifrase = product['Minifrase'] || '';
+
+  const disabledOverlay = disponible ? '' : 'opacity-60';
+  const clickHandler = `onclick="toggleCard(this)"`;
+
+  const colorDots = isVariadosColor(product)
+    ? `<span class="text-[11px] font-rounded text-brandInk/45 italic">Variados</span>`
+    : getColorList(product).slice(0, 6).map(c => `<span class="w-3.5 h-3.5 rounded-full inline-block border border-brandInk/10" style="background:${colorToCss(c)};" title="${escapeHtml(c)}"></span>`).join('');
+
+  const liked = isLiked(key);
+
+  return `
+    <div class="product-card product-card-lg bg-white rounded-3xl overflow-hidden shadow-sm border border-brandGold/10 cursor-pointer"
+         data-key="${key}" data-product-index="${index}" ${clickHandler}>
+
+      <div class="relative aspect-square ${disabledOverlay}">
+        ${thumbnailMediaMarkup(coverImg, product['Nombre'])}
+        ${!disponible ? `<span class="absolute top-3 left-3 text-[10px] font-rounded bg-brandInk/75 text-white px-2.5 py-1 rounded-full tracking-wide">Agotado</span>` : ''}
+        <button type="button" onclick="event.stopPropagation(); toggleLike(this, '${key}')"
+                class="like-btn ${liked ? 'liked' : ''} absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center">
+          ${HEART_ICON_SVG}
+        </button>
+      </div>
+
+      <div class="p-4">
+        <h4 class="font-fabfelt text-lg text-brandInk leading-snug">${escapeHtml(product['Nombre'])}</h4>
+        ${minifrase ? `<p class="font-rounded text-xs text-brandInk/55 mt-1">${escapeHtml(minifrase)}</p>` : ''}
+        <div class="flex items-center gap-1.5 mt-3">${colorDots}</div>
+      </div>
+
+      <div class="card-details px-4 pb-5">
+        <div class="pt-2 pb-3 mb-3 border-t border-brandGold/15">
+          <p class="font-rounded font-bold text-brandDeepGold text-xl tracking-tight">${price}</p>
+        </div>
+        <p class="text-xs font-rounded text-brandInk/70 leading-relaxed mb-3">${escapeHtml(product['Descripcion'])}</p>
+        ${carouselMarkup(product, key)}
+        ${colorCirclesMarkup(product, key)}
+        ${disponible
+          ? `<button onclick="event.stopPropagation(); orderWhatsApp(event,'${key}')" class="w-full py-3 rounded-2xl bg-brandGold text-white font-rounded text-sm font-semibold flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform duration-150">
+               ${WHATSAPP_ICON_SVG}
+               Pedir por WhatsApp
+             </button>`
+          : `<button disabled class="w-full py-3 rounded-2xl bg-brandInk/15 text-brandInk/40 font-rounded text-sm font-semibold flex items-center justify-center gap-2 cursor-not-allowed">
+               Agotado por ahora
+             </button>`
+        }
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
+// Skeleton — tarjeta grande placeholder mientras carga el CSV
+// ═══════════════════════════════════════════
+function skeletonCardMarkup() {
+  return `
+    <div class="skeleton-card shadow-sm border border-brandGold/10">
+      <div class="skeleton-card aspect-square"><div class="skeleton-shimmer"></div></div>
+      <div class="p-4 space-y-2">
+        <div class="skeleton-card h-4 w-3/4 rounded-full"><div class="skeleton-shimmer"></div></div>
+        <div class="skeleton-card h-3 w-1/2 rounded-full"><div class="skeleton-shimmer"></div></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderSkeletonLoader() {
+  const grid = document.getElementById('featured-grid');
+  if (!grid) return;
+  grid.innerHTML = `<div id="skeleton-wrapper" class="col-span-full grid grid-cols-1 md:grid-cols-2 gap-6">${skeletonCardMarkup()}${skeletonCardMarkup()}</div>`;
+}
+
+function dismissSkeletonThen(callback) {
+  const wrapper = document.getElementById('skeleton-wrapper');
+  if (!wrapper) { callback(); return; }
+  wrapper.classList.add('skeleton-fade-out');
+  setTimeout(callback, 380);
+}
+
+// ═══════════════════════════════════════════
+// Render de Destacados (dentro del scroll de Inicio) — solo Destacado='SI'
+// ═══════════════════════════════════════════
+function renderFeatured() {
+  const grid = document.getElementById('featured-grid');
+  if (!grid) return;
+
+  const featured = CATALOG
+    .map((p, i) => ({ product: p, index: i }))
+    .filter(item => isDestacado(item.product));
+
+  featured.sort((a, b) => (isDisponible(a.product) ? 0 : 1) - (isDisponible(b.product) ? 0 : 1));
+
+  dismissSkeletonThen(() => {
+    if (!featured.length) {
+      grid.innerHTML = `<p class="col-span-full text-xs font-rounded text-brandInk/40 text-center py-6">Aún no hay productos destacados.</p>`;
+      return;
+    }
+    grid.innerHTML = featured.map(item => productCardMarkup(item.product, item.index)).join('');
+  });
+}
+
+// ═══════════════════════════════════════════
+// Render de Colecciones — inventario filtrado por ACTIVE_CATEGORIA (o todo si
+// está vacío), mismas tarjetas grandes que "Destacados"
+// ═══════════════════════════════════════════
+function renderFullCatalog() {
+  const grid = document.getElementById('full-catalog-grid');
+  const emptyMsg = document.getElementById('catalog-empty-msg');
+  if (!grid) return;
+
+  const filtered = CATALOG
+    .map((p, i) => ({ product: p, index: i }))
+    .filter(item => productMatchesCategoria(item.product, ACTIVE_CATEGORIA));
+
+  filtered.sort((a, b) => (isDisponible(a.product) ? 0 : 1) - (isDisponible(b.product) ? 0 : 1));
+
+  grid.innerHTML = filtered.map(item => productCardMarkup(item.product, item.index)).join('');
+  if (emptyMsg) emptyMsg.classList.toggle('hidden', filtered.length > 0);
+
+  const countEl = document.getElementById('catalog-count');
+  if (countEl) countEl.textContent = `✦ ${filtered.length} piezas`;
+
+  renderCategoriaChips();
+}
+
+function renderFullCatalogIfActive() {
+  const screen = document.getElementById('screen-colecciones');
+  if (screen && screen.classList.contains('active')) {
+    renderFullCatalog();
+  }
+}
+
+// ═══════════════════════════════════════════
+// Chips de categoría en "Colecciones" — "Todas" + las 4 categorías configuradas,
+// usando el mismo título/color que ya se definió para las cajas de inicio.
+// ═══════════════════════════════════════════
+function renderCategoriaChips() {
+  const wrap = document.getElementById('categoria-chips');
+  if (!wrap) return;
+
+  const chipBase = 'nav-pill flex-shrink-0 px-4 py-2 rounded-full text-xs font-rounded font-semibold whitespace-nowrap border transition-colors duration-150';
+
+  const todasActive = ACTIVE_CATEGORIA === '';
+  const chips = [`
+    <button type="button" onclick="setActiveCategoria('')"
+      class="${chipBase} ${todasActive ? 'bg-brandGold text-white border-brandGold' : 'bg-white text-brandInk/70 border-brandGold/20'}">
+      Todas
+    </button>
+  `];
+
+  CATEGORIA_ROW_NAMES.forEach(rowName => {
+    const { titulo, valor } = resolveCategoriaTexto(rowName);
+    const isActive = normalizeText(ACTIVE_CATEGORIA) === normalizeText(valor);
+
+    chips.push(`
+      <button type="button" onclick="setActiveCategoria('${escapeHtml(valor)}')"
+        class="${chipBase} ${isActive ? 'bg-brandGold text-white border-brandGold' : 'bg-white text-brandInk/70 border-brandGold/20'}">
+        ${escapeHtml(titulo.replace(/\.$/, ''))}
+      </button>
+    `);
+  });
+
+  wrap.innerHTML = chips.join('');
+}
+
+function setActiveCategoria(valorCategoria) {
+  ACTIVE_CATEGORIA = valorCategoria || '';
+  renderFullCatalog();
+  const grid = document.getElementById('full-catalog-grid');
+  if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+// ═══════════════════════════════════════════
+// Navegación entre pantallas — 'inicio' (scroll único), 'colecciones', 'nuestra-historia'
+// ═══════════════════════════════════════════
+function showScreen(screenName) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('screen-' + screenName);
+  if (target) target.classList.add('active');
+
+  document.querySelectorAll('.nav-link[data-screen]').forEach(link => {
+    const isActive = link.dataset.screen === screenName;
+    link.classList.toggle('text-brandGold', isActive);
+    link.classList.toggle('text-brandInk/80', !isActive);
+  });
+
+  window.scrollTo({ top: 0, behavior: 'instant' in window ? 'instant' : 'auto' });
+
+  // Al entrar a "Colecciones" desde el menú (o "Ver colecciones") se parte
+  // siempre desde "Todas"; goToCategoria() aplica el filtro específico DESPUÉS
+  // de llamar a showScreen(), así que ese caso no se ve afectado por este reset.
+  if (screenName === 'colecciones') {
+    ACTIVE_CATEGORIA = '';
+    renderFullCatalog();
+  }
+}
+
+// El enlace "Inicio" del nav siempre vuelve a la pantalla de inicio y al top
+function goToInicioTop(e) {
+  e.preventDefault();
+  showScreen('inicio');
+}
+
+
+// ═══════════════════════════════════════════
+// Barra de beneficios (íconos estáticos: mano, lápiz, caja, carro).
+// Se define una sola vez aquí y se inyecta en los DOS lugares donde debe
+// aparecer: el footer de Inicio y la sección "Nuestra historia".
+// ═══════════════════════════════════════════
+const BENEFITS_ITEMS = [
+  { b64: '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',  alt: 'Hecho con intención',      label: 'HECHO CON INTENCIÓN' },
+  { b64: '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', alt: 'Personalizados',           label: 'PERSONALIZADOS' },
+  { b64: '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',  alt: 'Presentación premium',     label: 'PRESENTACIÓN PREMIUM' },
+  { b64: 'iVBORw0KGgoAAAANSUhEUgAAAMgAAAB2CAMAAAC6RiypAAAAflBMVEUAAAC1kEv8+/rFpWnNt4zh4KS4uHPu48zgz67ayaP58uH6sa/MuJG1tbWrhj3Lto3+/n58fAF/AAC5dHTh0rXEq3r//wDz6tV/f3+8eTe7oXD/f3/Xo23/AAC+rIKlfjYAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABKiTQfAAAAIHRSTlMA+w377AgDlp3mXAWqA/xgAgICA2ejAeICA6ICDQGj+SZx8MMAAAvxSURBVHja7VyLdqM4DHWEDRgCJQ1NH8ns/P9frh42gcQmQKBzZk61Z7bNo5hryZKuLKPUj/zIj6woAGAM/dtEAJpvwmE2HyGF78BxQpVkmwrC2B4JnFVhk21FI5TNkVQqs7t6t60kFqqNFwouRY0j1dtBkUvbrXVyVjmNo/VOX02BJ1F+0G9a676d6N5n7pvJ4J3BG4m1/FuxrU/BeSKF2DEjRucMg1dzfXvBQ6iPbYEUSb1LCvr99SqHq7wehp/5V4eIDC8i3yel6419FgPRUI5ppPnoa6SZqRFjjm3yLUBwkE1XolH5D5AfIH83kPofAGL+KSB/iWlBGpPj8Vim7b+xRtRfoxG8xSzP830nuRf32u6+CQg8RROhAnuTnA5yXEqzv08jt7ZdVQamK0Q/phrfo5Fw2jwxmXYaGeEO3wbEWpvfCLL5yXQeb7G/Qu4kn7ZGQCTwSQOPGIoA2d1TMWJptlhrEqd4LZN2ZZ3h98rqGP5gHMgNnZ9IueJxJD2m5nEcATPQSG95Vgf/CaumGQdSX025Z9X4toUVyl5GtQ9SFIQB7d5qZus5GoJyN9wc6JNc6e6DcgRIjdydfb9164UXDNc9kjz2l3OBjGkkVUi5+3UIvONKFp8qeibDtavLuNfiV1lCJRWnRcgsKiqB5/m8AInWaqBRmR4aeJLzDRt0IoNaCkIpVHoaiyOfaMvHd5k4fnVEJAnXip42LqNe8Ep7SKM5pe75GbljW5DzB+09kPaf6EylIxr5YAXTnX9ROY2dhVIELGmfrhUJkDcVBlKyvqRchJKxr95x0UVwJDrPCoDCqQ2t3YznWqkzLW8B5RnomsnTPngUCDh92M63QkFrtdaF+yAbfkAQq0dAOG4117mSqtfscllwjYSB4CxZ5+hVSRox5KeoRlVb62wMA0gFUJJrY2vHqW3GgeDfJ1+98Upxztm4cUEViSBVWXJASNU7XmUfBFLyTSc4613sgIqqbS55IwM5+60JI/4oNLX3QPrjfRzYSjUEdDlVGnfhMBC3nnP12p/jMoX9Fccg7rL+9H2NdxwI/ko1wlHPBSMbOG3LSc4IECOVTriJVpXLp/GO4WZaHHCYZVp+oCRe5UYl2xvu0ScjCVlBHAh8yH1BdefKsqSuk3ujBr5hXDjlAyA4+6ce2lPqjSuCpEKd/R7bfclUJRfOQ0AUUGIRcEMV3hjOQgnBsvv9X4SADNTWcOa6syOpt97dZmo9TkKJiag6BMTw4k3g1NxDVEVwG4LHu7/YDZBAJlHxu+hWTLT6ln9plLe3N/ejk/3bvvBrZBTIIXDD3f9u8jLYJ2ixU4AMXRuIcdnRzSCfnoUDTqr2USAI8bcNG66pIHgxustHGsHx3u6/4sLix0eMi3zSj+On+3HsSVoKkGQXzKMZSG1hRhbEF5sC5M65gJHYm43xItFFhJCOAXFZ0QwgHGKWAME0np36nbOfN4lBIBV5LUo5JgdciaCYyaYPcq0AEPzjjMLifn0gGEeSSBYYvVYhgbJcAqQR4zILM5U4EFm6iY5RlVDGY3ch2jwJiM+IlhYkBUgWAoLxbZZKMP6SmT9KUWJAvL/Pl6lkDIhk8RYmljVTR5F+Pc61/oswSSs5V7kMCHs9EzSVOSoxXRqvFgLxzQvjbNEgBUHuj1I6SsK5EnvMCBDkGDqU5kZwRGnFvWmFgTiWh3lqGR/wV+T9o3qLAlHpyTGFg5ngeu0uniMMOXt4jXhKUyfjmUr20mZ5SUzk8nIpyzJF0wc0aB0HghxRKO3DQjMIBSbMMAUIukJfvgZooJNXSYOjxoXBjWoDSdfzkwgXh5IDahSIm2dU9mEUCdoCLxAdYOwhIEisMGfCvOlTcqee8HxEPZcRNjlM5sX4GUhUl6VYPlnMGJKLGHfELwTLQT2NDKSI8OWri9/1m7CkpA9KNLKLh1PokBzhQSmG6nNGPQTCtNZ+Ib3Af19fTDP6kuzuKOTgftq7TZK8AIBHQLxXReuLIimF4BEvgsdAXI0vuaV7vW47vta8YOLyvLHMMO2QfEIUR81KiyzRIZA2mdJ2qO/jahdH7sRMAgLluE58efg96mputqcpgwtLz/rn1lAnAFFwkVogIgms+IvgSEbi8e0+O7Rcjypilap3ySdWBzKK5CLrAx302FbRvIYBnJl6EyAUJvJdyAs3qcMxmh/dAqnKisRUAUGDr7YDQtcUneSqn63g223yOGDO04hhNrAESF0/LiCfLx2S6wDgKvAc39SfBUIVd40L9WHnKByhFSfbGRHlVy7VCSUm3wwE76aYumXfTb9xNWvuqcfYdTQra2S+1+qXDh99x3T7V0Q+yoazIipmRznC9wKByZteUiWR4hMOZ/3+J6g/AQSaqMBjxRXWbY047eBvZ1B/Ash4y8kUJKKHzOM4gPoTQOA2/R/IlNJVwXm29qslnXRrqwOhPSwdFVs8xlI5zjjnbMsGQBq15y3ZukcA6nmNdCCsmVphppaFNwDS7ciGRU2Z4urAcZBifKn+FBDgTp/o2bT7jc+Iv8i0aqcTho3c7/D8J5KCtjvBOXBq8fXSq+X8OSCTdm0A6SQV746xil+q1OQafRgIGOngS41ZqhFT9qX/ypUOmrSvEXMK61U9AwQOvRc3ZczludbwD2iZQJHvtdX7PKNDZGf1pNxR3aMMsf9vj0PAzS0sBYK5YP8o2Af1/2jfSyndrAZWBQJuCNd/keTFwP+toxHjudI1tuSwrkYqVyYeDvHxLBCA3A64knXa8A0rlFA93RPWA+LK0LtuBNcN+SQQ/qtuC/HsGxWpwy/LcmdjOnuu47APxJVga8zW8sy0uZUSKU7WdQjYzQcixTetuJ+6PLjctuvwg5bTGF081XHYA+KnKqG1xyMUXR5tOqtIlmgk4ybTo5Lug8Q3Kh4xQJYH34P53CGAHhDuVhFCg+SsMWQJbvb8ELDQtBgIa8TV1Kkk4s+eo77dBskTfXr98yPdECmcfGDs9mDEvhsodkuBWKg+iI9cDy507IRs2h3+WCwGXN+v67vCBVERWzZ9FexsUZkTf5te6oVAuiqJ7NWUA1Ioue7rYo0crqbVJm7/uX8iwFXJ8361Zn4Ru5COLxJpYUxP6sQ1IqeTa4fVcumu4DfuqXetK0PRYR1Wifu2XViN53ICHR+Q9tsKGsisfX93yq2kwY+ZJX3L+p+34mhm4AMr9XoZghoQmw8MXziG71xyrYByDVc9q+a5FyMFxG5jEVlfqTB+6HevkmsX/DpPgCBHy8s/sf5g0rVnsQv281Mt0ntHd2u3PypN1p3YNZ9loeEkbeR0VkCxebmG1qvYbEmmBZn22UItF+d+oWtZRdzjGs9Hodzni7bwaI+6pSML7+/U5nBRb/2G3ryABe0owDn1y8uL+MiTnN7N1Y1GLH3lSWnpQghEfCU1SYAsxQsQENu+0ChFsdA7Qs/ryY419/ui43KGKj5FrSByMO2EGtFixpkAkTWSzeOxoSpRiZQzBd9ALv5Pi1ehzzXvdaZN+pyUKbhjUGeX+aCTe3enamq0tWP5yzf7LBe3d4XxkEIrsyqpwLkkLlMr8BIZ4lS5HW3qvmAX3GTJWP/FPCAyS5pPisjGIDfPu/Mdq5wdfSXdJnv1yUXkpLcZvObJZ+NTFA5ROWodCdfp2g12fn6Iio/zUFcD/lfgEJqrlfxsljrYoL/ctsScjOvcBt8ftLwfd8h+OI/wNePBELSRuQ4Q7rwVJIem4i5t7lWxSfDwxUKVMF3fU0GDKSH+ODgOj0OcVgJioDs5RUl2SSd0xZTtM+eGBjVK12uEqjikxlR8etbGW72eMa66Rsv1Mf2Whz6/EP1Olx+heNfrH0Tntq6aKgO2NYVpMXmsZZ+wXGsId1oPw9Q+y8DkVi9Orh4MY3e/fWZ1zURXfKhf1wPnxqjdEJVaVbx/7x83L9Rh5SHyZPDQO1oypVpZMPoW++6kuVSGYO0hcLa0L8ryTG3xVDcOh1kudG/slPoTSC5U4Mw1EcI9OZZfldpAoJTnBjiGWG7xVAvjanPiHU9qKzn7ZzykZqOHc4BJ5WERTye7EyhwA5sPAd/yiNMf+ZF/Wf4HAPeKsTKD5ZkAAAAASUVORK5CYII=', alt: 'Envíos a todo el país',    label: 'Envíos a todo el país' },
+];
+
+function benefitsIconsMarkup(compact = false) {
+  const iconSize = compact ? 'w-6 h-6 mb-1.5' : 'w-8 h-8 mb-2';
+  const textSize = compact ? 'text-[8.5px] leading-tight' : 'text-[11px]';
+  return BENEFITS_ITEMS.map(item => `
+    <div class="text-center">
+      <img src="data:image/png;base64,${item.b64}" alt="${escapeHtml(item.alt)}" class="${iconSize} mx-auto object-contain" />
+      <p class="font-rounded ${textSize} text-brandInk/60 tracking-wide">${escapeHtml(item.label)}</p>
+    </div>
+  `).join('');
+}
+
+function renderBenefitsIcons() {
+  const footerEl = document.getElementById('benefits-footer');
+  if (footerEl) footerEl.innerHTML = benefitsIconsMarkup(false);
+
+  const historiaEl = document.getElementById('benefits-historia');
+  if (historiaEl) historiaEl.innerHTML = benefitsIconsMarkup(true);
+}
+
+// ═══════════════════════════════════════════
+// Init — se ejecuta al cargar el DOM
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  showScreen('inicio');
+  initCatalog();
+  initVideoAutoplay();
+  renderBenefitsIcons();
+});
+
+// ═══════════════════════════════════════════
+// Autoplay forzado vía JS — respaldo para navegadores que ignoran `autoplay`
+// en videos insertados dinámicamente
+// ═══════════════════════════════════════════
+function forcePlayVideo(video) {
+  if (!video || video.dataset.autoplayAttempted) return;
+  video.dataset.autoplayAttempted = '1';
+  video.muted = true;
+  video.loop = true;
+  video.autoplay = true;
+
+  const playPromise = video.play();
+  if (playPromise !== undefined) {
+    playPromise
+      .then(() => video.removeAttribute('controls'))
+      .catch(() => video.setAttribute('controls', ''));
+  }
+}
+
+function initVideoAutoplay() {
+  document.querySelectorAll('video[data-autoplay-video]').forEach(forcePlayVideo);
+
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
+      mutation.addedNodes.forEach(node => {
+        if (node.nodeType !== 1) return;
+        if (node.matches('video[data-autoplay-video]')) {
+          forcePlayVideo(node);
+        } else {
+          node.querySelectorAll('video[data-autoplay-video]').forEach(forcePlayVideo);
+        }
+      });
+    });
+  });
+  observer.observe(document.body, { childList: true, subtree: true });
+}
+
+// ═══════════════════════════════════════════
+// Acordeón — expandir/cerrar tarjetas grandes
+// ═══════════════════════════════════════════
+function closeCardDetails(details) {
+  if (!details.classList.contains('open')) return;
+  details.style.maxHeight = details.scrollHeight + 'px';
+  requestAnimationFrame(() => { details.style.maxHeight = '0px'; });
+  details.classList.remove('open');
+}
+
+function openCardDetails(details) {
+  details.classList.add('open');
+  details.style.maxHeight = details.scrollHeight + 'px';
+
+  const recalc = () => {
+    if (details.classList.contains('open')) {
+      details.style.maxHeight = details.scrollHeight + 'px';
+    }
+  };
+  details.querySelectorAll('img').forEach(img => {
+    if (img.complete) return;
+    img.addEventListener('load', recalc, { once: true });
+  });
+  details.querySelectorAll('video').forEach(video => {
+    if (video.readyState >= 1) return;
+    video.addEventListener('loadedmetadata', recalc, { once: true });
+  });
+}
+
+function toggleCard(card) {
+  const details = card.querySelector('.card-details');
+  const isOpen = details.classList.contains('open');
+
+  document.querySelectorAll('.card-details.open').forEach(d => {
+    if (d === details) return;
+    closeCardDetails(d);
+  });
+
+  if (isOpen) {
+    closeCardDetails(details);
+  } else {
+    openCardDetails(details);
+    setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 60);
+  }
+}
+
+// ═══════════════════════════════════════════
+// Carrusel táctil — swipe con touchstart/touchend
+// ═══════════════════════════════════════════
+const SWIPE_THRESHOLD = 40;
+
+function goToSlide(trackId, dotsId, index) {
+  const track = document.getElementById(trackId);
+  if (!track) return;
+  const count = parseInt(track.dataset.count, 10) || 1;
+  const clamped = Math.max(0, Math.min(index, count - 1));
+
+  track.dataset.index = clamped;
+  track.style.transform = `translateX(-${clamped * 100}%)`;
+
+  const dotsContainer = document.getElementById(dotsId);
+  if (!dotsContainer) return;
+  const dots = dotsContainer.querySelectorAll('.dot');
+  dots.forEach((d, i) => {
+    const isActive = i === clamped;
+    d.classList.toggle('active', isActive);
+    d.classList.toggle('bg-brandGold', isActive);
+    d.classList.toggle('bg-brandGold/30', !isActive);
+  });
+}
+
+let touchStartX = 0;
+let touchCurrentX = 0;
+let touchingTrack = null;
+
+document.addEventListener('touchstart', (e) => {
+  const track = e.target.closest('.carousel-track');
+  if (!track) return;
+  touchingTrack = track;
+  touchStartX = e.touches[0].clientX;
+  touchCurrentX = touchStartX;
+  track.style.transition = 'none';
+}, { passive: true });
+
+document.addEventListener('touchmove', (e) => {
+  if (!touchingTrack) return;
+  touchCurrentX = e.touches[0].clientX;
+  const deltaX = touchCurrentX - touchStartX;
+  const index = parseInt(touchingTrack.dataset.index, 10) || 0;
+  touchingTrack.style.transform = `translateX(calc(-${index * 100}% + ${deltaX}px))`;
+}, { passive: true });
+
+document.addEventListener('touchend', () => {
+  if (!touchingTrack) return;
+  const track = touchingTrack;
+  track.style.transition = '';
+
+  const deltaX = touchCurrentX - touchStartX;
+  const index = parseInt(track.dataset.index, 10) || 0;
+  const trackId = track.id;
+  const dotsId = trackId.replace('carousel-', 'dots-');
+
+  if (deltaX <= -SWIPE_THRESHOLD) {
+    goToSlide(trackId, dotsId, index + 1);
+  } else if (deltaX >= SWIPE_THRESHOLD) {
+    goToSlide(trackId, dotsId, index - 1);
+  } else {
+    goToSlide(trackId, dotsId, index);
+  }
+
+  touchingTrack = null;
+  touchStartX = 0;
+  touchCurrentX = 0;
+});
+
+// ═══════════════════════════════════════════
+// Selector de color — guarda el color activo SIN cerrar la tarjeta
+// ═══════════════════════════════════════════
+function selectColor(el) {
+  const siblings = el.parentElement.querySelectorAll('.color-circle');
+  siblings.forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+function getSelectedColor(cardEl) {
+  if (!cardEl) return 'Variados';
+  const selected = cardEl.querySelector('.color-circle.selected');
+  if (selected) return selected.dataset.color;
+  return 'Variados';
+}
+
+// ═══════════════════════════════════════════
+// SISTEMA DE LIKES — toggle visual instantáneo + persistencia en localStorage
+// (para no permitir likes duplicados desde este mismo navegador) + POST
+// asíncrono al Google Apps Script que suma +1 (o -1) en la columna "Likes".
+// ═══════════════════════════════════════════
+const LIKES_STORAGE_KEY = 'tintin_liked_products';
+
+function getLikedSet() {
+  try {
+    const raw = localStorage.getItem(LIKES_STORAGE_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch (e) {
+    return new Set();
+  }
+}
+
+function saveLikedSet(set) {
+  try {
+    localStorage.setItem(LIKES_STORAGE_KEY, JSON.stringify(Array.from(set)));
+  } catch (e) { /* localStorage no disponible — el like sigue funcionando en memoria */ }
+}
+
+function isLiked(key) {
+  return getLikedSet().has(key);
+}
+
+function toggleLike(btnEl, key) {
+  const liked = getLikedSet();
+  const wasLiked = liked.has(key);
+  const productName = CATALOG[parseInt(key.replace('p', ''), 10)]?.['Nombre'] || '';
+
+  if (wasLiked) {
+    liked.delete(key);
+    btnEl.classList.remove('liked');
+  } else {
+    liked.add(key);
+    btnEl.classList.add('liked');
+    btnEl.classList.add('pop');
+    setTimeout(() => btnEl.classList.remove('pop'), 350);
+  }
+  saveLikedSet(liked);
+
+  sendLikeToSheet(productName, wasLiked ? -1 : 1);
+}
+
+// POST asíncrono, no bloqueante — si falla (offline, endpoint no configurado),
+// el like visual local ya quedó aplicado y no se interrumpe la experiencia.
+function sendLikeToSheet(productName, delta) {
+  if (!LIKES_ENDPOINT || LIKES_ENDPOINT.startsWith('PEGA_AQUI')) return;
+
+  fetch(LIKES_ENDPOINT, {
+    method: 'POST',
+    mode: 'no-cors', // Apps Script Web Apps no siempre devuelven CORS headers
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ nombre: productName, delta: delta })
+  }).catch(err => console.warn('No se pudo registrar el like en el Sheet:', err));
+}
+
+// ═══════════════════════════════════════════
+// Pedido por WhatsApp
+// ═══════════════════════════════════════════
+function orderWhatsApp(e, key) {
+  if (e && e.stopPropagation) e.stopPropagation();
+
+  const index = parseInt(key.replace('p', ''), 10);
+  const product = CATALOG[index];
+  if (!product) return;
+
+  const cardEl = document.querySelector(`.product-card[data-key="${key}"]`);
+  const color = getSelectedColor(cardEl);
+  const price = formatPriceCOP(product['Precio']);
+
+  sendWhatsAppOrder(product['Nombre'], price, color);
+}
+
+function sendWhatsAppOrder(nombre, precioFormateado, color) {
+  const message = `Hola, me interesa el ${nombre} por un valor de ${precioFormateado} de color ${color}.`;
+  openWhatsApp(message);
+}
+</script>
+
+</body>
+</html>

@@ -157,7 +157,7 @@ try { var u = localStorage.getItem('tintin_hero_url_v1'); if (u) { var im = new 
      y luego la nueva. Respaldo puro en CSS: si algo fallara, a los 10 s se
      muestran de todas formas. */
   html:not(.sheet-ready) :is(#brand-name, #brand-submessage, #hero-eyebrow, #hero-script, #hero-title, #hero-body,
-      #categorias-titulo, #destacados-titulo, #asi-nace-titulo, #asi-nace-texto, #asi-nace-boton, [id^="historia-"]) {
+      #categorias-titulo, #destacados-titulo, #asi-nace-titulo, #asi-nace-texto, #asi-nace-boton, #texto-2-parrafo, #texto-2-enlace, [id^="historia-"]) {
     visibility: hidden; animation: sheet-reveal 0s linear 10s forwards;
   }
   @keyframes sheet-reveal { to { visibility: visible; } }
@@ -213,10 +213,10 @@ try { var u = localStorage.getItem('tintin_hero_url_v1'); if (u) { var im = new 
   <!-- ── HEADER ── -->
   <header class="flex items-center gap-3 px-4 pt-4 pb-2">
     <div class="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-sm ring-1 ring-brandGold/25">
-      <img id="header-logo" src="data:image/webp;base64,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" alt="Logo Tintin" width="64" height="64" decoding="async" class="w-full h-full object-cover" />
+      <img id="header-logo" src="data:image/webp;base64,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" alt="Logo tintin colibrí" width="64" height="64" decoding="async" class="w-full h-full object-cover" />
     </div>
     <div class="flex flex-col">
-      <h1 id="brand-name" class="font-fabfelt text-4xl font-semibold leading-none text-brandInk tracking-wide">Tintin</h1>
+      <h1 id="brand-name" class="font-fabfelt text-3xl sm:text-4xl font-semibold leading-none text-brandInk tracking-wide">Tintin colibrí</h1>
       <p id="brand-submessage" class="font-fabfelt text-xl text-brandGold/80 -mt-0.5 tracking-wide leading-none">vive tu instante</p>
     </div>
   </header>
@@ -311,13 +311,13 @@ try { var u = localStorage.getItem('tintin_hero_url_v1'); if (u) { var im = new 
 
   <!-- ── TEXTO 2 + ENLACE NUESTRA HISTORIA ── -->
   <section id="texto-2" class="text-center">
-    <p class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
+    <p id="texto-2-parrafo" class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
       tintin colibrí no entrega cajas. Entrega el instante exacto en que alguien siente: “pensaron en mí”.
       Cada caja esconde una historia que se revela capítulo a capítulo — pensada para que abrirla sea, en sí mismo, un pequeño milagro.
     </p>
     <a href="#" onclick="showScreen('nuestra-historia'); return false;"
        class="inline-block mt-5 font-rounded text-sm font-semibold tracking-wide text-[#C48A86] hover:text-brandGold transition-colors duration-200">
-      Nuestra historia →
+      <span id="texto-2-enlace">Nuestra historia</span> →
     </a>
   </section>
 
@@ -365,58 +365,7 @@ try { var u = localStorage.getItem('tintin_hero_url_v1'); if (u) { var im = new 
 <main id="screen-nuestra-historia" class="screen px-4 pt-6 space-y-4 max-w-lg mx-auto">
 
   <section id="sobre-nosotros" class="bg-brandBlush rounded-3xl p-6 border border-brandGold/10 shadow-sm">
-    <p id="historia-eyebrow" class="text-[10px] font-rounded tracking-widest uppercase text-brandGold/70 mb-1">✦ Nuestra historia</p>
-    <h2 id="historia-titulo" class="font-fabfelt text-3xl text-brandInk leading-tight mb-3">Nuestra Historia</h2>
-
-    <p id="historia-frase" class="font-fabfelt text-xl text-brandGold leading-snug mb-4">"El sonido que le da nombre a todo"</p>
-
-    <p id="historia-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-3">
-      Hay un instante, antes de cualquier gran momento, en el que algo anuncia que la vida está por cambiar. Un latido distinto. Un silencio que se llena de expectativa. Un pequeño "tin… tin…" que avisa que algo mágico está a punto de suceder.
-    </p>
-    <p id="historia-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-3">
-      Así nació tintin colibrí: de la certeza de que los milagros más grandes casi siempre llegan en formato pequeño y delicado — como el aleteo de un colibrí, el ave más diminuta que existe, pero la única capaz de quedarse suspendida en el aire, vibrando, para tocar una flor con la delicadeza exacta que necesita para florecer.
-    </p>
-    <p id="historia-p3" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
-      Eso hacemos en cada caja: tocamos con esa misma delicadeza. No con ruido, no con exceso — con intención.
-    </p>
-
-    <h3 id="historia-sub1-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Por qué una caja y no un objeto</h3>
-    <p id="historia-sub1-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-1.5">
-      Porque un objeto se olvida. Una historia, no.
-    </p>
-    <p id="historia-sub1-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
-      Diseñamos cada kit para que sea descubierto el momento exacto en que el tiempo se detiene para quien lo recibe. Eso es lo que estás comprando: una experiencia inolvidable.
-    </p>
-
-    <h3 id="historia-sub2-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Tres formas de anunciar algo extraordinario</h3>
-    <p id="historia-sub2-intro" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-2">
-      Porque cada etapa de la vida merece su propio "tin tin":
-    </p>
-    <ul class="space-y-1.5 mb-3 pl-1">
-      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
-        <span class="text-brandGold flex-shrink-0">✦</span>
-        <span id="historia-bullet1">Bebés, para anunciar una llegada — antes incluso de que el mundo la conozca.</span>
-      </li>
-      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
-        <span class="text-brandGold flex-shrink-0">✦</span>
-        <span id="historia-bullet2">Niñas, para anunciar que la imaginación tiene permiso de volar y para contarles que su valor interior está listo para ser descubierto.</span>
-      </li>
-      <li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2">
-        <span class="text-brandGold flex-shrink-0">✦</span>
-        <span id="historia-bullet3">Mujeres, para anunciar que está bien, de vez en cuando, pausar.</span>
-      </li>
-    </ul>
-    <p id="historia-sub2-cierre" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
-      Tres líneas, un mismo gesto: dejar algo floreciendo donde tocamos.
-    </p>
-
-    <h3 id="historia-sub3-titulo" class="font-rounded font-bold text-sm text-brandInk mb-2">Nuestra promesa</h3>
-    <p id="historia-sub3-p1" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-1.5">
-      No vendemos cajas. Vendemos el instante exacto en que alguien levanta una tapa y, por unos segundos, siente que la magia es real.
-    </p>
-    <p id="historia-sub3-p2" class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-5">
-      Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.
-    </p>
+    <div id="historia-contenido"></div>
 
     <div id="benefits-historia" class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-4 mb-5"></div>
 
@@ -489,20 +438,15 @@ const SEPARATOR_DEFAULT = {
 // texto del elemento con ese id. El texto por defecto vive en el propio HTML
 // (fuente única): si la fila no existe o está vacía, no se toca nada.
 const EDITABLE_TEXTS = [
-  ['HISTORIA_ETIQUETA','historia-eyebrow'], ['HISTORIA_TITULO','historia-titulo'], ['HISTORIA_FRASE','historia-frase'],
-  ['HISTORIA_PARRAFO_1','historia-p1'], ['HISTORIA_PARRAFO_2','historia-p2'], ['HISTORIA_PARRAFO_3','historia-p3'],
-  ['HISTORIA_SUBTITULO_1','historia-sub1-titulo'], ['HISTORIA_SUB1_TEXTO_1','historia-sub1-p1'], ['HISTORIA_SUB1_TEXTO_2','historia-sub1-p2'],
-  ['HISTORIA_SUBTITULO_2','historia-sub2-titulo'], ['HISTORIA_SUB2_INTRO','historia-sub2-intro'],
-  ['HISTORIA_VINETA_1','historia-bullet1'], ['HISTORIA_VINETA_2','historia-bullet2'], ['HISTORIA_VINETA_3','historia-bullet3'],
-  ['HISTORIA_SUB2_CIERRE','historia-sub2-cierre'],
-  ['HISTORIA_SUBTITULO_3','historia-sub3-titulo'], ['HISTORIA_SUB3_TEXTO_1','historia-sub3-p1'], ['HISTORIA_SUB3_TEXTO_2','historia-sub3-p2'],
   ['HISTORIA_BOTON','historia-boton'],
   ['TEXTO_NOMBRE_MARCA','brand-name'], ['TEXTO_TITULO_CATEGORIAS','categorias-titulo'], ['TEXTO_TITULO_DESTACADOS','destacados-titulo'],
   ['TEXTO_ASI_NACE_TITULO','asi-nace-titulo'], ['TEXTO_ASI_NACE_PARRAFO','asi-nace-texto'], ['TEXTO_BOTON_INICIO','asi-nace-boton'],
+  ['TEXTO_INICIO_PARRAFO','texto-2-parrafo'], ['TEXTO_ENLACE_HISTORIA','texto-2-enlace'],
   ['CONFIG_TINTIN_COLIBRI','brand-submessage']
 ];
 const EDITABLE_KEYS = new Set(EDITABLE_TEXTS.map(t => t[0]));
 let TEXT_OVERRIDES = {};
+let HISTORIA_TEXT = '';
 
 // Filas CONFIG_CATEGORIA_* — orden fijo en el que se muestran las 4 cajas de "¿Qué quieres regalar hoy?"
 // Cada fila trae: Imagen (ícono fondo negro/líneas doradas), 'Color fondo banners' (hex), y
@@ -629,6 +573,7 @@ function applyCatalogCsv(csvText) {
   BANNER_CONFIG = null;
   SEPARATOR_CONFIG = null;
   TEXT_OVERRIDES = {};
+  HISTORIA_TEXT = '';
   CATEGORIA_CONFIGS = {};
   CATALOG = [];
 
@@ -638,12 +583,8 @@ function applyCatalogCsv(csvText) {
       BANNER_CONFIG = { image: row['Imagen'] || '', text: row['Descripcion'] || '' };
     } else if (nombre === 'CONFIG_SEPARADOR') {
       SEPARATOR_CONFIG = { image: row['Imagen'] || '', focus: row['Descripcion'] || '' };
-    } else if (nombre === 'CONFIG_HISTORIA') {
-      // Formato antiguo (una celda, 19 líneas): se sigue respetando; las filas nuevas mandan sobre él.
-      (row['Descripcion'] || '').split(/\r?\n/).forEach((line, i) => {
-        const key = EDITABLE_TEXTS[i] && EDITABLE_TEXTS[i][0];
-        if (key && line.trim() && !TEXT_OVERRIDES[key]) TEXT_OVERRIDES[key] = line.trim();
-      });
+    } else if (nombre === 'HISTORIA') {
+      HISTORIA_TEXT = (row['Descripcion'] || '').trim();
     } else if (EDITABLE_KEYS.has(nombre)) {
       const text = (row['Descripcion'] || '').trim();
       if (text) TEXT_OVERRIDES[nombre] = text;
@@ -666,6 +607,7 @@ function applyCatalogCsv(csvText) {
   applyBanner(true);
   applySeparator(true);
   applyEditableTexts();
+  renderHistoria();
   renderCategorias();
   renderFeatured();
   renderFullCatalogIfActive();
@@ -673,6 +615,7 @@ function applyCatalogCsv(csvText) {
 
 async function initCatalog() {
   renderSkeletonLoader();
+  renderHistoria(); // texto base (oculto hasta que responda el Sheet)
   const markReady = () => document.documentElement.classList.add('sheet-ready'); // muestra los textos
 
   if (window.location.protocol === 'file:') {
@@ -797,6 +740,59 @@ function applySeparator(useFallbackImage = false) {
   if (sepSrc && imgEl && imgEl.getAttribute('src') !== sepSrc) imgEl.src = sepSrc;
   const focus = (cfg.focus || '').trim();
   if (focus && imgEl) imgEl.style.objectPosition = focus;
+}
+
+// ═══ NUESTRA HISTORIA DESDE UNA SOLA CELDA ═══
+// Fila del Sheet: Nombre = HISTORIA, y todo el texto en "Descripcion".
+// Cada LÍNEA (o cada "||") es un bloque, y el símbolo con que empieza decide qué es:
+//   ~ etiqueta pequeña      # título grande      > frase dorada
+//   ## subtítulo            - viñeta (varias seguidas forman una lista)
+//   (sin símbolo) = párrafo normal
+// Este texto es el que se ve si la fila no existe: también sirve de modelo para copiar.
+const HISTORIA_DEFAULT = `~ Nuestra historia
+# Nuestra Historia
+> "El sonido que le da nombre a todo"
+Hay un instante, antes de cualquier gran momento, en el que algo anuncia que la vida está por cambiar. Un latido distinto. Un silencio que se llena de expectativa. Un pequeño "tin… tin…" que avisa que algo mágico está a punto de suceder.
+Así nació tintin colibrí: de la certeza de que los milagros más grandes casi siempre llegan en formato pequeño y delicado — como el aleteo de un colibrí, el ave más diminuta que existe, pero la única capaz de quedarse suspendida en el aire, vibrando, para tocar una flor con la delicadeza exacta que necesita para florecer.
+Eso hacemos en cada caja: tocamos con esa misma delicadeza. No con ruido, no con exceso — con intención.
+## Por qué una caja y no un objeto
+Porque un objeto se olvida. Una historia, no.
+Diseñamos cada kit para que sea descubierto el momento exacto en que el tiempo se detiene para quien lo recibe. Eso es lo que estás comprando: una experiencia inolvidable.
+## Tres formas de anunciar algo extraordinario
+Porque cada etapa de la vida merece su propio "tin tin":
+- Bebés, para anunciar una llegada — antes incluso de que el mundo la conozca.
+- Niñas, para anunciar que la imaginación tiene permiso de volar y para contarles que su valor interior está listo para ser descubierto.
+- Mujeres, para anunciar que está bien, de vez en cuando, pausar.
+Tres líneas, un mismo gesto: dejar algo floreciendo donde tocamos.
+## Nuestra promesa
+No vendemos cajas. Vendemos el instante exacto en que alguien levanta una tapa y, por unos segundos, siente que la magia es real.
+Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.`;
+
+const HISTORIA_BLOCKS = {
+  '~':  t => `<p class="text-[10px] font-rounded tracking-widest uppercase text-brandGold/70 mb-1">✦ ${t}</p>`,
+  '#':  t => `<h2 class="font-fabfelt text-3xl text-brandInk leading-tight mb-3">${t}</h2>`,
+  '>':  t => `<p class="font-fabfelt text-xl text-brandGold leading-snug mb-4">${t}</p>`,
+  '##': t => `<h3 class="font-rounded font-bold text-sm text-brandInk mt-5 mb-2">${t}</h3>`,
+  '-':  t => `<li class="text-xs font-rounded text-brandInk/75 leading-relaxed flex gap-2"><span class="text-brandGold flex-shrink-0">✦</span><span>${t}</span></li>`,
+  '':   t => `<p class="text-xs font-rounded text-brandInk/75 leading-relaxed mb-3">${t}</p>`
+};
+
+function renderHistoria() {
+  const box = document.getElementById('historia-contenido');
+  if (!box) return;
+  let html = '', items = '';
+  const closeList = () => { if (items) { html += `<ul class="space-y-1.5 mb-3 pl-1">${items}</ul>`; items = ''; } };
+
+  (HISTORIA_TEXT || HISTORIA_DEFAULT).split(/\r?\n|\|\|/).map(l => l.trim()).filter(Boolean).forEach(line => {
+    const m = line.match(/^(##|#|>|-|~)\s*(.+)$/);
+    const marker = m ? m[1] : '';
+    const text = escapeHtml(m ? m[2] : line);
+    if (marker === '-') { items += HISTORIA_BLOCKS['-'](text); return; }
+    closeList();
+    html += HISTORIA_BLOCKS[marker](text);
+  });
+  closeList();
+  box.innerHTML = html;
 }
 
 // Aplica los textos del Sheet. dataset.def recuerda el texto original del HTML,

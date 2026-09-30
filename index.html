@@ -4,17 +4,16 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>tintin colibrí – Regalos con intención</title>
+<link rel="icon" type="image/png" href="assets/logo.png">
 
 <!-- Optimización de carga: adelantar la conexión a los orígenes externos que
      se usan en cuanto arranca la página (CSV del catálogo, imagen del hero,
      y ahora también las tipografías de Google Fonts), para que el navegador
      resuelva DNS/TLS mientras aún se procesa el HTML. -->
 <link rel="preconnect" href="https://docs.google.com" crossorigin>
-<link rel="preconnect" href="https://images.unsplash.com" crossorigin>
+<link rel="preconnect" href="https://i.postimg.cc" crossorigin>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="dns-prefetch" href="https://docs.google.com">
-<link rel="dns-prefetch" href="https://images.unsplash.com">
 
 <!-- Tipografías de marca: Cormorant Garamond (títulos) y Manrope (cuerpo de
      texto). Se cargan como WOFF2 optimizado desde el CDN de Google Fonts en
@@ -22,34 +21,10 @@
      navegador puede cachear estas fuentes entre visitas y entre sitios,
      lo que acelera la primera carga real de la página. display=swap evita
      que el texto quede invisible mientras la fuente termina de descargar. -->
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,500&family=Manrope:wght@400;500;600;700&display=swap">
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: {
-      extend: {
-        colors: {
-          brandBg:        '#FBF6F1',   /* crema base */
-          brandBlush:     '#F6EFE6',   /* blanco roto cálido */
-          brandPink:      '#F3D7D2',   /* rosado muy pálido */
-          brandSky:       '#C8DCE7',   /* azul pálido de acento */
-          brandInk:       '#3D2B1F',
-          brandGold:      '#B08840',
-          brandDeepGold:  '#8B6B30',
-          brandLightMuted:'#FAF3EC',
-        },
-        fontFamily: {
-          // Los nombres de clase (font-fabfelt / font-rounded) se conservan
-          // sin cambios a propósito: así este cambio de tipografía no obliga
-          // a tocar ninguna de las clases ya usadas en el HTML o en el JS.
-          fabfelt:  ['"Cormorant Garamond"', 'serif'],
-          rounded:  ['Manrope', 'sans-serif'],
-        },
-      }
-    }
-  }
-</script>
+<!-- CSS de Tailwind ya compilado (antes se compilaba en el navegador en cada visita). Para regenerarlo: npm run build:css -->
+<link rel="stylesheet" href="assets/tailwind.css">
 <style>
   * { box-sizing: border-box; }
 
@@ -139,14 +114,39 @@
   }
   .wa-btn { animation: pulse-gold 2.5s infinite; }
 
-  /* ═══ SKELETON SHIMMER — tarjeta grande placeholder ═══ */
+  /* ═══ SKELETON SHIMMER — una sola definición, compartida por el skeleton del
+         catálogo Y por el fondo de carga de cada imagen (.img-frame) ═══ */
   .skeleton-card { border-radius: 1.75rem; overflow: hidden; position: relative; background: #F0E4DB; }
-  .skeleton-shimmer {
-    position: absolute; inset: 0;
+  .skeleton-shimmer, .img-frame::before {
+    content: ''; position: absolute; inset: 0;
     background: linear-gradient(115deg, rgba(250,245,240,0) 30%, rgba(255,255,255,0.65) 48%, rgba(255,255,255,0.65) 52%, rgba(250,245,240,0) 70%);
     background-size: 250% 250%;
     animation: shimmer-diagonal 1.6s ease-in-out infinite;
   }
+
+  /* ═══ MARCO DE IMAGEN — proporción fija + carga suave ═══
+     .img-frame reserva el espacio ANTES de que llegue la foto (cero saltos de
+     layout), pinta un fondo crema con shimmer mientras carga, y la <img> aparece
+     con fade-in al terminar. JS añade .is-loaded al cargar (apaga el shimmer);
+     si la imagen falla añade .is-error y queda un fondo limpio en vez de un
+     ícono roto. */
+  .img-frame { position: relative; overflow: hidden; background: #F0E4DB; }
+  .img-frame > img, .img-frame > video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    opacity: 0; transition: opacity 0.45s ease;
+  }
+  .img-frame.is-loaded > img, .img-frame.is-loaded > video { opacity: 1; }
+  .img-frame.is-loaded::before, .img-frame.is-error::before { display: none; }
+  .img-frame.is-error > img { display: none; }
+  .logo-fallback { display: none; }
+  .img-frame.is-error > .logo-fallback { display: block; }
+  /* Proporción de la miniatura de producto: 4/5 (vertical) — muestra completos
+     los kits fotografiados en vertical sin recortar bordes. Cambiar SOLO este
+     valor ajusta todas las tarjetas del sitio a la vez. */
+  .ratio-card { aspect-ratio: 4 / 5; }
+  /* Fade-in para imágenes cuyo alto depende de la propia foto (carrusel del detalle) */
+  .fade-img { opacity: 0; transition: opacity 0.45s ease; }
+  .fade-img.is-loaded { opacity: 1; }
   @keyframes shimmer-diagonal {
     0%   { background-position: -100% -100%; }
     100% { background-position: 100% 100%; }
@@ -195,11 +195,15 @@
 
   <!-- ── HEADER ── -->
   <header class="flex items-center gap-3 px-4 pt-4 pb-2">
-    <div class="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-brandPink shadow-sm">
-      <img id="header-logo" src="assets/logo.png" alt="Logo tintin colibrí" fetchpriority="high" decoding="async" class="w-full h-full object-cover" />
+    <div class="w-16 h-16 rounded-full overflow-hidden flex-shrink-0 shadow-sm ring-1 ring-brandGold/25">
+      <div class="img-frame w-full h-full flex items-center justify-center">
+        <img id="header-logo" src="assets/logo.png" alt="Logo Tintin" width="64" height="64" fetchpriority="high" decoding="async"
+             onload="markImageLoaded(this)" onerror="markImageError(this)" class="object-cover" />
+        <span class="logo-fallback font-fabfelt text-2xl text-brandGold">t</span>
+      </div>
     </div>
     <div class="flex flex-col">
-      <h1 class="font-rounded text-3xl leading-none text-brandInk tracking-wide">tintin colibrí</h1>
+      <h1 id="brand-name" class="font-fabfelt text-4xl font-semibold leading-none text-brandInk tracking-wide">Tintin</h1>
       <p id="brand-submessage" class="font-fabfelt text-xl text-brandGold/80 -mt-0.5 tracking-wide leading-none">vive tu instante</p>
     </div>
   </header>
@@ -221,10 +225,17 @@
   <a id="inicio"></a>
 
   <!-- ── HERO ── -->
+  <!-- El hero NO trae foto por defecto en el HTML: la URL viene del Sheet
+       (fila CONFIG_BANNER) y se asigna en applyBanner(). Así el navegador
+       descarga UNA sola imagen: la del Sheet (o la de respaldo solo si el Sheet
+       no trae ninguna). En visitas repetidas sale de la caché local al instante. Mientras llega, .img-frame muestra el degradado crema con
+       shimmer; la foto aparece con fade-in. -->
   <section id="hero" class="relative min-h-[520px] flex items-end overflow-hidden">
-    <img id="hero-image" src="https://images.unsplash.com/photo-1490750967868-88df5691cc5a?w=1400&q=85&auto=format&fit=crop"
-         alt="tintin colibrí" fetchpriority="high" decoding="async"
-         class="absolute inset-0 w-full h-full object-cover" style="object-position: center 30%;" />
+    <div class="img-frame absolute inset-0" style="background: linear-gradient(160deg, #F3D7D2 0%, #F6EFE6 55%, #FBF6F1 100%);">
+      <img id="hero-image" alt="tintin colibrí" fetchpriority="high" decoding="async"
+           onload="markImageLoaded(this)" onerror="markImageError(this)"
+           class="object-cover" style="object-position: center 30%;" />
+    </div>
     <div class="absolute inset-0" style="background: linear-gradient(to bottom, rgba(61,43,31,0.05) 0%, rgba(61,43,31,0.15) 40%, rgba(251,246,241,0.92) 78%, #FBF6F1 100%);"></div>
 
     <div class="relative z-10 w-full max-w-lg mx-auto px-6 pb-8 pt-32">
@@ -249,7 +260,7 @@
 
   <!-- ── OCASIONES (dinámico desde CONFIG_CATEGORIA_*) ── -->
   <section id="ocasiones">
-    <h3 class="text-center font-fabfelt text-2xl text-brandInk mb-5">¿Qué quieres regalar hoy?</h3>
+    <h3 id="categorias-titulo" class="text-center font-fabfelt text-2xl text-brandInk mb-5">¿Qué quieres regalar hoy?</h3>
     <div id="categorias-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
       <p class="col-span-full text-xs font-rounded text-brandInk/40 text-center py-6">Cargando categorías…</p>
     </div>
@@ -257,7 +268,7 @@
 
   <!-- ── DESTACADOS ── -->
   <section id="destacados">
-    <h3 class="text-center font-fabfelt text-2xl text-brandInk mb-5">Destacados</h3>
+    <h3 id="destacados-titulo" class="text-center font-fabfelt text-2xl text-brandInk mb-5">Destacados</h3>
     <div id="featured-grid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <p class="col-span-full text-xs font-rounded text-brandInk/40 text-center py-6">Cargando catálogo…</p>
     </div>
@@ -265,21 +276,24 @@
 
   <!-- ── ASÍ NACE TINTÍN ── -->
   <section id="asi-nace" class="text-center">
-    <h3 class="font-fabfelt text-2xl text-brandInk mb-4">Así nace tin tin</h3>
-    <p class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
+    <h3 id="asi-nace-titulo" class="font-fabfelt text-2xl text-brandInk mb-4">Así nace tin tin</h3>
+    <p id="asi-nace-texto" class="font-rounded text-sm text-brandInk/70 leading-relaxed max-w-md mx-auto">
       Tin... tin... Así suena el instante justo antes de que llegue algo extraordinario.
       Como el roce de un colibrí sobre una flor, anunciando que algo está por florecer.
     </p>
     <a href="#" onclick="showScreen('colecciones'); return false;"
        class="inline-flex items-center gap-2 mt-6 rounded-full bg-brandGold text-white px-6 py-2.5 font-rounded text-xs font-semibold tracking-wide shadow-sm hover:bg-brandDeepGold transition-colors duration-200">
-      Descubre el instante
+      <span id="asi-nace-boton">Descubre tu regalo</span>
     </a>
   </section>
 
   <!-- ── SEPARADOR (CONFIG_SEPARADOR) ── -->
   <div class="rounded-3xl overflow-hidden shadow-sm">
-    <img id="separator-image" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&q=80&auto=format&fit=crop"
-         alt="" loading="lazy" decoding="async" class="w-full h-48 object-cover" style="object-position: center 40%;" />
+    <div class="img-frame w-full h-48">
+      <img id="separator-image" alt="" loading="lazy" decoding="async"
+           onload="markImageLoaded(this)" onerror="markImageError(this)"
+           class="object-cover" style="object-position: center 40%;" />
+    </div>
   </div>
 
   <!-- ── TEXTO 2 + ENLACE NUESTRA HISTORIA ── -->
@@ -391,11 +405,11 @@
       Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.
     </p>
 
-    <div id="benefits-historia" class="grid grid-cols-4 gap-2 mb-5"></div>
+    <div id="benefits-historia" class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-4 mb-5"></div>
 
     <a href="#" onclick="showScreen('colecciones'); return false;"
        class="block w-full py-3 rounded-2xl bg-brandGold text-white font-rounded text-sm font-semibold text-center shadow-sm hover:bg-brandDeepGold transition-colors duration-200">
-      <span id="historia-boton">Vive tu instante.</span>
+      <span id="historia-boton">Encuentra tu experiencia</span>
     </a>
   </section>
 
@@ -422,6 +436,10 @@
 // 🔧 CONFIGURACIÓN — enlace al CSV publicado de Google Sheets
 // Archivo → Compartir → Publicar en la web → CSV
 // ═══════════════════════════════════════════
+// Cuántas tarjetas del catálogo cargan su foto de inmediato (sin lazy). Son las
+// que caben en la primera pantalla; el resto se difiere hasta acercarse al scroll.
+const EAGER_CARD_COUNT = 4;
+
 const SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSa5j883G-wOtHoKfIkUc2D4OGZg-dbUPhG6cHvSql4gNUMMYeBNhgtltdf5uoo_iJvIyx1lIUuMyyD/pub?output=csv';
 
 // Endpoint del Google Apps Script publicado para sumar Likes (ver script .gs entregado aparte)
@@ -458,53 +476,24 @@ const TINTIN_BRAND_DEFAULT = {
   text: 'vive tu instante'
 };
 
-// Fila CONFIG_HISTORIA — todo el texto de la pantalla "Nuestra historia".
-// Cada campo de abajo es UNA LÍNEA dentro de la misma celda "Descripcion" del
-// Sheet (Alt+Enter en Google Sheets = salto de línea sin salir de la celda),
-// en este orden exacto:
-//   1. Eyebrow          (ej. "✦ Nuestra historia")
-//   2. Título           (ej. "Nuestra Historia")
-//   3. Frase destacada  (ej. "El sonido que le da nombre a todo")
-//   4. Párrafo 1
-//   5. Párrafo 2
-//   6. Párrafo 3
-//   7. Subtítulo "Por qué una caja"
-//   8. Párrafo A de esa sección
-//   9. Párrafo B de esa sección
-//  10. Subtítulo "Tres formas"
-//  11. Frase intro de esa sección
-//  12. Bullet 1
-//  13. Bullet 2
-//  14. Bullet 3
-//  15. Párrafo de cierre de esa sección
-//  16. Subtítulo "Nuestra promesa"
-//  17. Párrafo A de esa sección
-//  18. Párrafo B de esa sección
-//  19. Texto del botón final
-// Si la fila no existe en el Sheet, o vino con menos líneas de las 19
-// esperadas, cada línea faltante se completa con el texto original de
-// fábrica (definido aquí abajo) para que la sección nunca se vea rota.
-const HISTORIA_DEFAULT_LINES = [
-  '✦ Nuestra historia',
-  'Nuestra Historia',
-  'El sonido que le da nombre a todo',
-  'Hay un instante, antes de cualquier gran momento, en el que algo anuncia que la vida está por cambiar. Un latido distinto. Un silencio que se llena de expectativa. Un pequeño "tin… tin…" que avisa que algo mágico está a punto de suceder.',
-  'Así nació tintin colibrí: de la certeza de que los milagros más grandes casi siempre llegan en formato pequeño y delicado — como el aleteo de un colibrí, el ave más diminuta que existe, pero la única capaz de quedarse suspendida en el aire, vibrando, para tocar una flor con la delicadeza exacta que necesita para florecer.',
-  'Eso hacemos en cada caja: tocamos con esa misma delicadeza. No con ruido, no con exceso — con intención.',
-  'Por qué una caja y no un objeto',
-  'Porque un objeto se olvida. Una historia, no.',
-  'Diseñamos cada kit para que sea descubierto el momento exacto en que el tiempo se detiene para quien lo recibe. Eso es lo que estás comprando: una experiencia inolvidable.',
-  'Tres formas de anunciar algo extraordinario',
-  'Porque cada etapa de la vida merece su propio "tin tin":',
-  'Bebés, para anunciar una llegada — antes incluso de que el mundo la conozca.',
-  'Niñas, para anunciar que la imaginación tiene permiso de volar y para contarles que su valor interior está listo para ser descubierto.',
-  'Mujeres, para anunciar que está bien, de vez en cuando, pausar.',
-  'Tres líneas, un mismo gesto: dejar algo floreciendo donde tocamos.',
-  'Nuestra promesa',
-  'No vendemos cajas. Vendemos el instante exacto en que alguien levanta una tapa y, por unos segundos, siente que la magia es real.',
-  'Eso es tintin colibrí: pequeños anuncios de algo extraordinario, empacados con intención.',
-  'Vive tu instante.'
+// ═══ TEXTOS EDITABLES DESDE EL SHEET ═══
+// Cada fila del Sheet con Nombre = CLAVE y el texto en "Descripcion" reemplaza el
+// texto del elemento con ese id. El texto por defecto vive en el propio HTML
+// (fuente única): si la fila no existe o está vacía, no se toca nada.
+const EDITABLE_TEXTS = [
+  ['HISTORIA_ETIQUETA','historia-eyebrow'], ['HISTORIA_TITULO','historia-titulo'], ['HISTORIA_FRASE','historia-frase'],
+  ['HISTORIA_PARRAFO_1','historia-p1'], ['HISTORIA_PARRAFO_2','historia-p2'], ['HISTORIA_PARRAFO_3','historia-p3'],
+  ['HISTORIA_SUBTITULO_1','historia-sub1-titulo'], ['HISTORIA_SUB1_TEXTO_1','historia-sub1-p1'], ['HISTORIA_SUB1_TEXTO_2','historia-sub1-p2'],
+  ['HISTORIA_SUBTITULO_2','historia-sub2-titulo'], ['HISTORIA_SUB2_INTRO','historia-sub2-intro'],
+  ['HISTORIA_VINETA_1','historia-bullet1'], ['HISTORIA_VINETA_2','historia-bullet2'], ['HISTORIA_VINETA_3','historia-bullet3'],
+  ['HISTORIA_SUB2_CIERRE','historia-sub2-cierre'],
+  ['HISTORIA_SUBTITULO_3','historia-sub3-titulo'], ['HISTORIA_SUB3_TEXTO_1','historia-sub3-p1'], ['HISTORIA_SUB3_TEXTO_2','historia-sub3-p2'],
+  ['HISTORIA_BOTON','historia-boton'],
+  ['TEXTO_NOMBRE_MARCA','brand-name'], ['TEXTO_TITULO_CATEGORIAS','categorias-titulo'], ['TEXTO_TITULO_DESTACADOS','destacados-titulo'],
+  ['TEXTO_ASI_NACE_TITULO','asi-nace-titulo'], ['TEXTO_ASI_NACE_PARRAFO','asi-nace-texto'], ['TEXTO_BOTON_INICIO','asi-nace-boton']
 ];
+const EDITABLE_KEYS = new Set(EDITABLE_TEXTS.map(t => t[0]));
+let TEXT_OVERRIDES = {};
 
 // Filas CONFIG_CATEGORIA_* — orden fijo en el que se muestran las 4 cajas de "¿Qué quieres regalar hoy?"
 // Cada fila trae: Imagen (ícono fondo negro/líneas doradas), 'Color fondo banners' (hex), y
@@ -533,7 +522,6 @@ let CATALOG = [];
 let BANNER_CONFIG = null;
 let SEPARATOR_CONFIG = null;
 let TINTIN_BRAND_CONFIG = null;
-let HISTORIA_CONFIG = null;
 let CATEGORIA_CONFIGS = {};
 
 // Categoría actualmente seleccionada en la pantalla "Colecciones" ('' = todas)
@@ -611,6 +599,71 @@ function parseCSV(text) {
 // Columnas esperadas: Nombre, Precio, Imagen, Colores, Descripcion, Disponible,
 // Destacado, Minifrase, Likes
 // ═══════════════════════════════════════════
+// Caché local del último CSV descargado (stale-while-revalidate):
+//  - visita repetida → el catálogo, el hero y los textos aparecen AL INSTANTE
+//    desde el navegador, y el Sheet se consulta en segundo plano;
+//  - si el Sheet cambió, se vuelve a pintar; si no, no se toca nada (sin parpadeo).
+// Todo va en try/catch: si el navegador bloquea localStorage, el sitio funciona igual.
+const CSV_CACHE_KEY = 'tintin_catalog_csv_v1';
+function readCsvCache() {
+  try { return localStorage.getItem(CSV_CACHE_KEY) || ''; } catch (e) { return ''; }
+}
+function writeCsvCache(csvText) {
+  try { localStorage.setItem(CSV_CACHE_KEY, csvText); } catch (e) { /* sin caché, sin problema */ }
+}
+
+// Convierte el texto CSV en estado (CATALOG y CONFIG_*) y repinta la página.
+// Devuelve false si el CSV no trae productos (para no pisar un catálogo bueno).
+function applyCatalogCsv(csvText) {
+  const rows = parseCSV(csvText);
+  if (!rows.length) throw { type: 'empty' };
+
+  BANNER_CONFIG = null;
+  SEPARATOR_CONFIG = null;
+  TINTIN_BRAND_CONFIG = null;
+  TEXT_OVERRIDES = {};
+  CATEGORIA_CONFIGS = {};
+  CATALOG = [];
+
+  rows.forEach(row => {
+    const nombre = (row['Nombre'] || '').toUpperCase().trim();
+    if (nombre === 'CONFIG_BANNER') {
+      BANNER_CONFIG = { image: row['Imagen'] || '', text: row['Descripcion'] || '' };
+    } else if (nombre === 'CONFIG_SEPARADOR') {
+      SEPARATOR_CONFIG = { image: row['Imagen'] || '', focus: row['Descripcion'] || '' };
+    } else if (nombre === 'CONFIG_TINTIN_COLIBRI') {
+      TINTIN_BRAND_CONFIG = { text: row['Descripcion'] || '' };
+    } else if (nombre === 'CONFIG_HISTORIA') {
+      // Formato antiguo (una celda, 19 líneas): se sigue respetando; las filas nuevas mandan sobre él.
+      (row['Descripcion'] || '').split(/\r?\n/).forEach((line, i) => {
+        const key = EDITABLE_TEXTS[i] && EDITABLE_TEXTS[i][0];
+        if (key && line.trim() && !TEXT_OVERRIDES[key]) TEXT_OVERRIDES[key] = line.trim();
+      });
+    } else if (EDITABLE_KEYS.has(nombre)) {
+      const text = (row['Descripcion'] || '').trim();
+      if (text) TEXT_OVERRIDES[nombre] = text;
+    } else if (CATEGORIA_ROW_NAMES.includes(nombre)) {
+      CATEGORIA_CONFIGS[nombre] = {
+        image: row['Imagen'] || '',
+        color: (row['Color fondo banners'] || '').trim(),
+        descripcion: row['Descripcion'] || ''
+      };
+    } else if (row['Nombre'] && row['Nombre'].trim() !== '') {
+      CATALOG.push(row);
+    }
+  });
+
+  if (!CATALOG.length) throw { type: 'no-products' };
+
+  applyBanner(true);
+  applySeparator(true);
+  applyTintinBrand();
+  applyEditableTexts();
+  renderCategorias();
+  renderFeatured();
+  renderFullCatalogIfActive();
+}
+
 async function initCatalog() {
   renderSkeletonLoader();
 
@@ -619,10 +672,18 @@ async function initCatalog() {
     return;
   }
 
+  // 1) Visita repetida: pintar YA con lo último que conocemos.
+  const cachedCsv = readCsvCache();
+  let paintedFromCache = false;
+  if (cachedCsv) {
+    try { applyCatalogCsv(cachedCsv); paintedFromCache = true; }
+    catch (e) { console.warn('Caché local inválida, se ignora:', e); }
+  }
+
+  // 2) Siempre consultar el Sheet para traer los cambios más recientes.
   try {
-    // Timeout defensivo: si el Sheet tarda demasiado en responder (red lenta,
-    // Google Sheets caído), se corta la espera a los 12s en vez de dejar el
-    // skeleton girando indefinidamente y mostrar el mensaje de error normal.
+    // Timeout defensivo: a los 12s se corta la espera en vez de dejar el skeleton
+    // girando indefinidamente.
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
@@ -635,50 +696,17 @@ async function initCatalog() {
     if (!response.ok) throw { type: 'http', status: response.status };
 
     const csvText = await response.text();
-    const rows = parseCSV(csvText);
+    if (csvText === cachedCsv && paintedFromCache) return; // nada cambió: cero repintado
 
-    if (!rows.length) throw { type: 'empty' };
-
-    BANNER_CONFIG = null;
-    SEPARATOR_CONFIG = null;
-    TINTIN_BRAND_CONFIG = null;
-    HISTORIA_CONFIG = null;
-    CATEGORIA_CONFIGS = {};
-    CATALOG = [];
-
-    rows.forEach(row => {
-      const nombre = (row['Nombre'] || '').toUpperCase().trim();
-      if (nombre === 'CONFIG_BANNER') {
-        BANNER_CONFIG = { image: row['Imagen'] || '', text: row['Descripcion'] || '' };
-      } else if (nombre === 'CONFIG_SEPARADOR') {
-        SEPARATOR_CONFIG = { image: row['Imagen'] || '', focus: row['Descripcion'] || '' };
-      } else if (nombre === 'CONFIG_TINTIN_COLIBRI') {
-        TINTIN_BRAND_CONFIG = { text: row['Descripcion'] || '' };
-      } else if (nombre === 'CONFIG_HISTORIA') {
-        HISTORIA_CONFIG = { text: row['Descripcion'] || '' };
-      } else if (CATEGORIA_ROW_NAMES.includes(nombre)) {
-        CATEGORIA_CONFIGS[nombre] = {
-          image: row['Imagen'] || '',
-          color: (row['Color fondo banners'] || '').trim(),
-          descripcion: row['Descripcion'] || ''
-        };
-      } else if (row['Nombre'] && row['Nombre'].trim() !== '') {
-        CATALOG.push(row);
-      }
-    });
-
-    if (!CATALOG.length) throw { type: 'no-products' };
-
-    applyBanner();
-    applySeparator();
-    applyTintinBrand();
-    applyHistoria();
-    renderCategorias();
-    renderFeatured();
-    renderFullCatalogIfActive();
+    applyCatalogCsv(csvText);
+    writeCsvCache(csvText);
 
   } catch (err) {
     console.error('Error cargando el catálogo desde el CSV:', err);
+    if (paintedFromCache) return; // ya hay catálogo visible desde la caché; no molestar con un error
+    // Sin caché y sin Sheet: al menos que el hero y el separador muestren su respaldo
+    applyBanner(true);
+    applySeparator(true);
     const type = (err && err.type) ? err.type
                 : (err && err.name === 'AbortError') ? 'timeout'
                 : (err instanceof TypeError) ? 'network-or-cors'
@@ -737,7 +765,7 @@ function showCatalogError(type, err) {
 // Banner (Hero) — controlado por la fila CONFIG_BANNER.
 // Descripcion viene como "Antetítulo ; Script ; Título ; Párrafo" (split por ';')
 // ═══════════════════════════════════════════
-function applyBanner() {
+function applyBanner(useFallbackImage = false) {
   const cfg = BANNER_CONFIG || BANNER_DEFAULT;
   const imgEl      = document.getElementById('hero-image');
   const eyebrowEl  = document.getElementById('hero-eyebrow');
@@ -745,7 +773,9 @@ function applyBanner() {
   const titleEl    = document.getElementById('hero-title');
   const bodyEl     = document.getElementById('hero-body');
 
-  if (cfg.image && imgEl) imgEl.src = cfg.image;
+  // Una sola asignación de src → una sola descarga (el HTML ya no trae foto por defecto)
+  const heroSrc = normalizeImageUrl(cfg.image) || (useFallbackImage ? normalizeImageUrl(BANNER_DEFAULT.image) : '');
+  if (heroSrc && imgEl && imgEl.getAttribute('src') !== heroSrc) imgEl.src = heroSrc;
 
   const parts = String(cfg.text || '').split(';').map(p => p.trim());
   const [eyebrow, script, title, body, focus] = parts;
@@ -760,10 +790,11 @@ function applyBanner() {
   if (focus && imgEl) imgEl.style.objectPosition = focus;
 }
 
-function applySeparator() {
+function applySeparator(useFallbackImage = false) {
   const cfg = SEPARATOR_CONFIG || SEPARATOR_DEFAULT;
   const imgEl = document.getElementById('separator-image');
-  if (cfg.image && imgEl) imgEl.src = cfg.image;
+  const sepSrc = normalizeImageUrl(cfg.image) || (useFallbackImage ? normalizeImageUrl(SEPARATOR_DEFAULT.image) : '');
+  if (sepSrc && imgEl && imgEl.getAttribute('src') !== sepSrc) imgEl.src = sepSrc;
   const focus = (cfg.focus || '').trim();
   if (focus && imgEl) imgEl.style.objectPosition = focus;
 }
@@ -777,32 +808,14 @@ function applyTintinBrand() {
   if (el) el.textContent = text;
 }
 
-// Texto completo de "Nuestra historia" — controlado por la fila CONFIG_HISTORIA.
-// La celda "Descripcion" trae hasta 19 líneas (una por Alt+Enter en el Sheet);
-// ver HISTORIA_DEFAULT_LINES arriba para el orden exacto. Cualquier línea que
-// no llegue (fila ausente, o con menos líneas de las esperadas) se completa
-// con el texto de fábrica correspondiente, así la sección nunca queda vacía
-// a medias por un error de captura en el Sheet.
-const HISTORIA_ELEMENT_IDS = [
-  'historia-eyebrow', 'historia-titulo', 'historia-frase',
-  'historia-p1', 'historia-p2', 'historia-p3',
-  'historia-sub1-titulo', 'historia-sub1-p1', 'historia-sub1-p2',
-  'historia-sub2-titulo', 'historia-sub2-intro',
-  'historia-bullet1', 'historia-bullet2', 'historia-bullet3', 'historia-sub2-cierre',
-  'historia-sub3-titulo', 'historia-sub3-p1', 'historia-sub3-p2',
-  'historia-boton'
-];
-
-function applyHistoria() {
-  const rawText = (HISTORIA_CONFIG && HISTORIA_CONFIG.text) || '';
-  // Acepta tanto saltos de línea reales (Alt+Enter en Sheets) como '|' por si
-  // alguien prefiere escribirlo todo en una sola línea separado por barras.
-  const lines = rawText.split(/\r\n|\r|\n|\|/).map(l => l.trim());
-
-  HISTORIA_ELEMENT_IDS.forEach((id, i) => {
-    const value = lines[i] && lines[i].length > 0 ? lines[i] : HISTORIA_DEFAULT_LINES[i];
+// Aplica los textos del Sheet. dataset.def recuerda el texto original del HTML,
+// así, si una fila se borra del Sheet, el texto vuelve solo a su valor por defecto.
+function applyEditableTexts() {
+  EDITABLE_TEXTS.forEach(([key, id]) => {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (!el) return;
+    if (el.dataset.def === undefined) el.dataset.def = el.textContent;
+    el.textContent = TEXT_OVERRIDES[key] || el.dataset.def;
   });
 }
 
@@ -826,7 +839,7 @@ function categoriaIconMarkup(imageUrl) {
   categoriaIconCounter += 1;
   const canvasId = `categoria-icon-${categoriaIconCounter}`;
   // data-src en vez de src: se carga vía JS para poder procesar el canvas antes de mostrarlo
-  return `<canvas id="${canvasId}" data-src="${escapeHtml(imageUrl)}" class="w-10 h-10 mx-auto mb-3 categoria-icon-canvas" width="200" height="200"></canvas>`;
+  return `<canvas id="${canvasId}" data-src="${escapeHtml(imageUrl)}" class="w-16 h-16 mx-auto mb-3 categoria-icon-canvas" width="200" height="200"></canvas>`;
 }
 
 // Recorre cada <canvas data-src> pendiente, carga su imagen origen y quita el
@@ -908,7 +921,7 @@ function renderCategorias() {
 
     const iconMarkup = image
       ? categoriaIconMarkup(image)
-      : `<div class="w-10 h-10 mx-auto mb-3"></div>`; // sin ícono todavía en el Excel: reserva el espacio
+      : `<div class="w-16 h-16 mx-auto mb-3"></div>`; // sin ícono todavía en el Excel: reserva el espacio
 
     return `
       <div class="rounded-3xl p-5 shadow-sm text-center cursor-pointer tap-feedback"
@@ -971,9 +984,30 @@ function formatPriceCOP(rawPrice) {
   }).format(number);
 }
 
+// Limpia una URL de imagen escrita en el Sheet. Un solo punto de corrección
+// para TODAS las imágenes del catálogo:
+//  - quita espacios / comillas accidentales al copiar y pegar
+//  - fuerza https (el sitio va por https; una imagen http se bloquea como
+//    "contenido mixto" y aparece rota)
+//  - detecta el error típico de Postimages: pegar el enlace de la PÁGINA
+//    (postimg.cc/abc123) en vez del "Enlace directo" (i.postimg.cc/.../foto.jpg).
+//    Esa URL devuelve HTML, no una imagen, y nunca carga.
+function normalizeImageUrl(rawUrl) {
+  let url = String(rawUrl || '').trim().replace(/^["']|["']$/g, '');
+  if (!url) return '';
+  if (url.startsWith('//')) url = 'https:' + url;
+  url = url.replace(/^http:\/\//i, 'https://');
+
+  if (/^https:\/\/(www\.)?postimg\.cc\//i.test(url)) {
+    console.warn('[Imagen] Enlace de PÁGINA de Postimages (no carga como imagen). ' +
+      'Usa el "Enlace directo" que empieza con https://i.postimg.cc/ :', url);
+  }
+  return url;
+}
+
 function getImageList(product) {
   const raw = product['Imagen'] || '';
-  return raw.split(',').map(u => u.trim()).filter(u => u.length > 0);
+  return raw.split(',').map(normalizeImageUrl).filter(u => u.length > 0);
 }
 
 function getColorList(product) {
@@ -1072,37 +1106,65 @@ function isVideoUrl(url) {
   return hasVideoExtension || hasVideoParam || isCatboxWithoutImageExt;
 }
 
-function thumbnailMediaMarkup(url, altText) {
-  if (!url) return '';
+// Miniatura de producto. El <div class="img-frame"> reserva el espacio con
+// proporción fija (ver .ratio-card en el CSS) y muestra un shimmer mientras la
+// foto llega; markImageLoaded/markImageError (abajo) apagan ese shimmer.
+// object-contain: la foto se ve COMPLETA (nunca recortada); el fondo crema del
+// marco rellena los bordes si la foto no tiene exactamente la proporción 4:5.
+// `eager` = true para las primeras tarjetas visibles (carga inmediata, sin lazy).
+function thumbnailMediaMarkup(url, altText, eager = false) {
+  if (!url) return '<div class="img-frame is-error w-full h-full"></div>';
   if (isVideoUrl(url)) {
-    // preload="metadata" en vez de "auto": basta con conocer dimensiones/duración
-    // para poder reproducir en loop; "auto" descarga el video completo de entrada
-    // aunque la tarjeta todavía no sea visible, lo cual es el mayor culpable de
-    // que las miniaturas tarden en aparecer cuando hay varios videos en pantalla.
-    return `<video data-autoplay-video autoplay loop muted playsinline preload="metadata" class="w-full h-full object-cover object-center">
-      <source src="${url}" type="video/mp4">
-    </video>`;
+    // preload="metadata": basta con conocer dimensiones/duración; "auto" descargaba
+    // el video completo aunque la tarjeta no fuera visible.
+    return `<div class="img-frame w-full h-full">
+      <video data-autoplay-video autoplay loop muted playsinline preload="metadata"
+             onloadeddata="markImageLoaded(this)" onerror="markImageError(this)"
+             class="object-cover object-center">
+        <source src="${escapeHtml(url)}" type="video/mp4">
+      </video>
+    </div>`;
   }
-  // loading="lazy": el navegador solo descarga la imagen cuando la tarjeta está
-  // por entrar en pantalla, en vez de descargar TODAS las miniaturas del grid
-  // de una vez. decoding="async" evita que decodificar la imagen bloquee el
-  // hilo principal justo cuando ya llegó (causa de "saltos" al pintar la tarjeta).
-  return `<img src="${url}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" class="w-full h-full object-cover object-center" />`;
+  const loading = eager ? 'eager' : 'lazy';
+  const priority = eager ? 'high' : 'auto';
+  return `<div class="img-frame w-full h-full">
+    <img src="${escapeHtml(url)}" alt="${escapeHtml(altText)}"
+         loading="${loading}" fetchpriority="${priority}" decoding="async"
+         onload="markImageLoaded(this)" onerror="markImageError(this)"
+         class="object-contain object-center" />
+  </div>`;
+}
+
+// Apaga el shimmer y hace el fade-in. Se llama desde onload/onerror de cada
+// <img>/<video>. Un solo helper para todas las imágenes del sitio.
+function markImageLoaded(el) {
+  const frame = el.closest('.img-frame');
+  if (frame) frame.classList.add('is-loaded');
+}
+function markImageError(el) {
+  const frame = el.closest('.img-frame');
+  if (frame) frame.classList.add('is-error');
 }
 
 function mediaSlideMarkup(url, altText) {
+  const safeUrl = escapeHtml(url);
   if (isVideoUrl(url)) {
     // Este carrusel solo se ve al expandir la tarjeta (ver toggleCard), así que
-    // "metadata" es suficiente hasta ese momento — igual que en la miniatura.
+    // preload="metadata" basta hasta ese momento.
     return `
       <div class="carousel-slide">
         <video data-autoplay-video autoplay loop muted playsinline preload="metadata" class="w-full h-auto rounded-xl">
-          <source src="${url}" type="video/mp4">
+          <source src="${safeUrl}" type="video/mp4">
         </video>
       </div>`;
   }
+  // Fade-in con el mismo helper que las miniaturas. Aquí NO va .img-frame
+  // (la altura del slide depende de la foto: h-auto), por eso el fade se hace
+  // directamente sobre la <img> con la clase .fade-img.
   return `
-    <div class="carousel-slide"><img src="${url}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async" class="w-full h-auto object-contain" draggable="false"></div>`;
+    <div class="carousel-slide"><img src="${safeUrl}" alt="${escapeHtml(altText)}" loading="lazy" decoding="async"
+      onload="this.classList.add('is-loaded')" onerror="this.style.display='none'"
+      class="fade-img w-full h-auto object-contain" draggable="false"></div>`;
 }
 
 function carouselMarkup(product, key) {
@@ -1164,8 +1226,8 @@ function productCardMarkup(product, index) {
     <div class="product-card product-card-lg bg-white rounded-3xl overflow-hidden shadow-sm border border-brandGold/10 cursor-pointer"
          data-key="${key}" data-product-index="${index}" ${clickHandler}>
 
-      <div class="relative aspect-square ${disabledOverlay}">
-        ${thumbnailMediaMarkup(coverImg, product['Nombre'])}
+      <div class="relative ratio-card ${disabledOverlay}">
+        ${thumbnailMediaMarkup(coverImg, product['Nombre'], index < EAGER_CARD_COUNT)}
         ${!disponible ? `<span class="absolute top-3 left-3 text-[10px] font-rounded bg-brandInk/75 text-white px-2.5 py-1 rounded-full tracking-wide">Agotado</span>` : ''}
         <button type="button" onclick="event.stopPropagation(); toggleLike(this, '${key}')"
                 class="like-btn ${liked ? 'liked' : ''} absolute top-3 right-3 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm shadow-sm flex items-center justify-center">
@@ -1206,7 +1268,7 @@ function productCardMarkup(product, index) {
 function skeletonCardMarkup() {
   return `
     <div class="skeleton-card shadow-sm border border-brandGold/10">
-      <div class="skeleton-card aspect-square"><div class="skeleton-shimmer"></div></div>
+      <div class="skeleton-card ratio-card"><div class="skeleton-shimmer"></div></div>
       <div class="p-4 space-y-2">
         <div class="skeleton-card h-4 w-3/4 rounded-full"><div class="skeleton-shimmer"></div></div>
         <div class="skeleton-card h-3 w-1/2 rounded-full"><div class="skeleton-shimmer"></div></div>
@@ -1366,11 +1428,11 @@ const BENEFITS_ITEMS = [
 
 function benefitsIconsMarkup(compact = false) {
   const iconSize = compact ? 'w-6 h-6 mb-1.5' : 'w-8 h-8 mb-2';
-  const textSize = compact ? 'text-[8.5px] leading-tight' : 'text-[11px]';
+  const textSize = compact ? 'text-[10px] leading-tight' : 'text-[11px]';
   return BENEFITS_ITEMS.map(item => `
     <div class="text-center">
       <img src="data:image/png;base64,${item.b64}" alt="${escapeHtml(item.alt)}" class="${iconSize} mx-auto object-contain" />
-      <p class="font-rounded ${textSize} text-brandInk/60 tracking-wide">${escapeHtml(item.label)}</p>
+      <p class="font-rounded ${textSize} text-brandInk/60 tracking-wide break-words px-1">${escapeHtml(item.label)}</p>
     </div>
   `).join('');
 }
